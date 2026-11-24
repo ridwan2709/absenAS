@@ -1,0 +1,11 @@
+# Berkas dokumentasi & lokal yang tidak perlu diunggah ke Google Apps Script
+prd.md
+ZettBOT.md
+.claspignore
+deploy.bat
+README.md
+Code.js
+node_modules/**
+package.json
+package-lock.json
+.git/**

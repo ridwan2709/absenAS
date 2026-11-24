@@ -1,0 +1,9 @@
+{
+  "timeZone": "Asia/Jakarta",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE"
+  }
+}

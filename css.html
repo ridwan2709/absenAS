@@ -1,0 +1,198 @@
+<style>
+  /* ==========================================================================
+     SchoolPrime Theme & Styling Standards (Anti-AI Human-Crafted Aesthetic)
+     ========================================================================== */
+
+  :root {
+    --brand-navy: #172554;
+    --brand-navy-light: #1e3a8a;
+    --brand-amber: #f59e0b;
+    --brand-amber-dark: #d97706;
+    --brand-cream: #fbfbfa;
+    --slate-text: #0f172a;
+    --card-shadow: 0 4px 20px -2px rgba(23, 37, 84, 0.06), 0 2px 6px -1px rgba(23, 37, 84, 0.04);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--slate-text);
+    background-color: #f8fafc;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  /* Sidebar Styling */
+  .schoolprime-sidebar {
+    background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%);
+    box-shadow: 4px 0 24px rgba(23, 37, 84, 0.12);
+  }
+
+  .nav-item-active {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24 !important;
+    border-left: 4px solid #f59e0b;
+    font-weight: 600;
+  }
+
+  /* Soft Glassmorphism & Cards */
+  .card-prime {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: var(--card-shadow);
+    border-radius: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card-prime-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -3px rgba(23, 37, 84, 0.1), 0 4px 6px -2px rgba(23, 37, 84, 0.05);
+  }
+
+  /* Micro-Interactions */
+  .btn-press {
+    transition: all 0.15s ease;
+  }
+
+  .btn-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Scanner Target Box Animation */
+  .scanner-crosshair {
+    position: relative;
+  }
+
+  .scanner-crosshair::before,
+  .scanner-crosshair::after {
+    content: '';
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: #f59e0b;
+    pointer-events: none;
+  }
+
+  .scanner-crosshair::before {
+    top: 20px;
+    left: 20px;
+    border-top: 4px solid;
+    border-left: 4px solid;
+  }
+
+  .scanner-crosshair::after {
+    bottom: 20px;
+    right: 20px;
+    border-bottom: 4px solid;
+    border-right: 4px solid;
+  }
+
+  /* Laser Scan Line */
+  .laser-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ef4444, #f59e0b, #ef4444, transparent);
+    box-shadow: 0 0 10px #f59e0b;
+    animation: scanAnim 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes scanAnim {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+
+    20% {
+      opacity: 1;
+    }
+
+    80% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: translateY(240px);
+      opacity: 0;
+    }
+  }
+
+  /* ==========================================================================
+     KARTU SISWA (ID CARD CR80 STANDAR: 85.6mm x 53.98mm)
+     ========================================================================== */
+  .id-card-wrap {
+    width: 85.6mm;
+    height: 53.98mm;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 3.18mm;
+    page-break-inside: avoid;
+  }
+
+  .id-card-header {
+    background: linear-gradient(135deg, #172554 0%, #1e3a8a 70%, #d97706 100%);
+    color: #ffffff;
+  }
+
+  .id-card-pattern {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Print Stylesheet */
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    .no-print {
+      display: none !important;
+    }
+
+    .print-only {
+      display: block !important;
+    }
+
+    .print-sheet-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 85.6mm) !important;
+      gap: 6mm !important;
+      justify-content: center !important;
+      padding: 10mm !important;
+    }
+
+    .id-card-wrap {
+      border: 1px dashed #94a3b8 !important;
+      box-shadow: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+</style>
