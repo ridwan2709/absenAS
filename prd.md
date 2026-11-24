@@ -218,3 +218,4 @@ ZONA BAWAH: MASTER CONTEXT & LOGIKA SISTEM TERKINI (LIVING CONTEXT)
   - [2026-11-24 v2.1.0] Pemisahan kode menjadi arsitektur Modular 5 Berkas (`index.html`, `css.html`, `js.html`, `code.gs`, `setup.gs`) menggunakan fungsi scriptlet `include()`.
   - [2026-11-24 v2.2.0] Penambahan toolchain Auto-Deploy Google Apps Script berbasis Google Clasp (`appsscript.json`, `.claspignore`, dan skrip otomatis `deploy.bat`).
   - [2026-11-24 v2.2.1] Rekonstruksi struktur semantik HTML `index.html` dan pembersihan tag penutup di `js.html` untuk memulihkan layout dashboard School Prime.
+  - [2026-11-24 v2.2.2] Perbaikan permanen warna background Deep Navy `#172554` pada sidebar, konversi link menu navigasi ke tombol semantik anti-sandbox, eliminasi class bentrok `hidden flex` pada seluruh modal dialog (`style="display: none;"`), serta penambahan proteksi `try...catch` pada fungsi `switchView()`.

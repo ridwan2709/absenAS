@@ -18,7 +18,7 @@
   <!-- ========================================================================
        SIDEBAR NAVIGASI (School Prime Deep Navy Theme)
        ======================================================================== -->
-  <aside id="appSidebar" class="no-print schoolprime-sidebar w-full md:w-64 md:min-h-screen text-white flex flex-col justify-between shrink-0 transition-all duration-300 z-30">
+  <aside id="appSidebar" style="background-color: #172554 !important; background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%) !important;" class="no-print schoolprime-sidebar bg-[#172554] w-full md:w-64 md:min-h-screen text-white flex flex-col justify-between shrink-0 transition-all duration-300 z-30">
     <div>
       <!-- Brand Logo Header -->
       <div class="px-6 py-6 border-b border-blue-900/40 flex items-center justify-between">
@@ -48,55 +48,55 @@
 
       <!-- Navigation Links -->
       <nav class="py-4 px-3 space-y-1 text-sm font-medium">
-        <a href="javascript:void(0)" onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item nav-item-active flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        <button type="button" onclick="switchView('dashboard')" id="nav-dashboard" class="w-full text-left nav-item nav-item-active flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
           Dashboard Utama
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('scanner')" id="nav-scanner" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+        <button type="button" onclick="switchView('scanner')" id="nav-scanner" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
           Scan Presensi QR
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('siswa')" id="nav-siswa" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        <button type="button" onclick="switchView('siswa')" id="nav-siswa" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
           Data Siswa & QR
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('kelas')" id="nav-kelas" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        <button type="button" onclick="switchView('kelas')" id="nav-kelas" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
           Data Rombel / Kelas
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('semester')" id="nav-semester" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <button type="button" onclick="switchView('semester')" id="nav-semester" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           Semester & Tahun Ajaran
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('naikkelas')" id="nav-naikkelas" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        <button type="button" onclick="switchView('naikkelas')" id="nav-naikkelas" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
           Kenaikan Kelas (Promosi)
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('cetakkartu')" id="nav-cetakkartu" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        <button type="button" onclick="switchView('cetakkartu')" id="nav-cetakkartu" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
           Cetak Kartu Siswa
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('laporan')" id="nav-laporan" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <button type="button" onclick="switchView('laporan')" id="nav-laporan" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           Rekap & Laporan
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('pengumuman')" id="nav-pengumuman" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        <button type="button" onclick="switchView('pengumuman')" id="nav-pengumuman" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
           Notice Board (Agenda)
-        </a>
+        </button>
 
-        <a href="javascript:void(0)" onclick="switchView('pengaturan')" id="nav-pengaturan" class="nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
-          <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <button type="button" onclick="switchView('pengaturan')" id="nav-pengaturan" class="w-full text-left nav-item flex items-center px-3 py-2.5 rounded-lg text-blue-100 hover:bg-blue-900/50 hover:text-white transition">
+          <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           Pengaturan Jam & Sekolah
-        </a>
+        </button>
       </nav>
     </div>
 
@@ -786,7 +786,7 @@
        ======================================================================== -->
 
   <!-- Modal Form Siswa -->
-  <div id="modalSiswa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modalSiswa" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="card-prime w-full max-w-md p-6 bg-white">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <h3 id="modalSiswaTitle" class="text-base font-extrabold text-slate-900">Tambah Data Siswa</h3>
@@ -832,7 +832,7 @@
   </div>
 
   <!-- Modal Form Kelas -->
-  <div id="modalKelas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modalKelas" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="card-prime w-full max-w-sm p-6 bg-white">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <h3 id="modalKelasTitle" class="text-base font-extrabold text-slate-900">Tambah Kelas Baru</h3>
@@ -869,7 +869,7 @@
   </div>
 
   <!-- Modal Form Semester -->
-  <div id="modalSemester" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modalSemester" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="card-prime w-full max-w-sm p-6 bg-white">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <h3 id="modalSemesterTitle" class="text-base font-extrabold text-slate-900">Tambah Semester Baru</h3>
@@ -908,7 +908,7 @@
   </div>
 
   <!-- Modal Form Pengumuman -->
-  <div id="modalPengumuman" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modalPengumuman" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="card-prime w-full max-w-sm p-6 bg-white">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <h3 id="modalPengumumanTitle" class="text-base font-extrabold text-slate-900">Tambah Agenda Pengumuman</h3>
@@ -945,7 +945,7 @@
   </div>
 
   <!-- Modal Preview Detail QR Kartu Siswa -->
-  <div id="modalQrPreview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+  <div id="modalQrPreview" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
     <div class="card-prime w-full max-w-sm p-6 bg-white text-center">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
         <h3 class="text-sm font-extrabold text-slate-900">QR Code Kartu Siswa</h3>
