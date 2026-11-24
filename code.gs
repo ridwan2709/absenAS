@@ -28,11 +28,11 @@ function doGet(e) {
     }
     return handleApiRequest(e.parameter.action, args);
   }
-  return ContentService.createTextOutput(JSON.stringify({
-    status: 'success',
-    message: 'School Prime API Backend is running active.',
-    timestamp: getNowJakarta()
-  })).setMimeType(ContentService.MimeType.JSON);
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
+    .setTitle('School Prime - Sistem Presensi QR & Kartu Siswa')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
