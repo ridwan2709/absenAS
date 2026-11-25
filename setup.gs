@@ -12,7 +12,7 @@
  */
 var SCHEMA_CONFIG = {
   Siswa: {
-    headers: ['ID', 'NIS', 'Nama', 'Kelas', 'JenisKelamin', 'Foto', 'Status', 'CreatedAt'],
+    headers: ['ID', 'NIS', 'Nama', 'Kelas', 'JenisKelamin', 'Foto', 'Status', 'CreatedAt', 'FaceDescriptor'],
     seeds: [
       ['SIS-001', '1001', 'Ahmad Rizky Pratama', 'X RPL 1', 'L', '', 'Aktif', '2026-07-15 08:00:00'],
       ['SIS-002', '1002', 'Annisa Fitriani', 'X RPL 1', 'P', '', 'Aktif', '2026-07-15 08:00:00'],
@@ -43,7 +43,7 @@ var SCHEMA_CONFIG = {
     ]
   },
   Presensi: {
-    headers: ['ID', 'Tanggal', 'NIS', 'Nama', 'Kelas', 'SemesterID', 'JamMasuk', 'JamPulang', 'Status', 'Keterangan'],
+    headers: ['ID', 'Tanggal', 'NIS', 'Nama', 'Kelas', 'SemesterID', 'JamMasuk', 'JamPulang', 'Status', 'Keterangan', 'LokasiGPS'],
     seeds: [
       ['ABS-20261124-001', '2026-11-24', '1001', 'Ahmad Rizky Pratama', 'X RPL 1', 'SMT-001', '06:55:12', '14:05:30', 'Hadir', 'Tepat Waktu'],
       ['ABS-20261124-002', '2026-11-24', '1002', 'Annisa Fitriani', 'X RPL 1', 'SMT-001', '07:22:10', '', 'Terlambat', 'Terlambat 7 menit'],
@@ -59,7 +59,11 @@ var SCHEMA_CONFIG = {
       ['NamaSekolah', 'SMK BINA BANGSA'],
       ['AlamatSekolah', 'Jl. Pendidikan No. 45, Kota Cerdas'],
       ['NamaKepsek', 'Drs. H. Mulyono, M.M.'],
-      ['ToleransiMenit', '15']
+      ['ToleransiMenit', '15'],
+      ['LatitudeSekolah', '-6.208763'],
+      ['LongitudeSekolah', '106.845599'],
+      ['RadiusMeter', '100'],
+      ['GpsEnabled', 'false']
     ]
   },
   Pengumuman: {

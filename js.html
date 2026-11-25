@@ -10,7 +10,9 @@
   // Global State Store
   var appState = {
     currentView: 'dashboard',
-    scannerMode: 'masuk', // 'masuk' atau 'pulang'
+    scannerMode: 'masuk', // 'masuk', 'pulang', 'izin', 'sakit'
+    scannerMethod: 'qr', // 'qr', 'face'
+    scannerKeterangan: '',
     scannerDebounceTime: 0,
     lastScannedNis: '',
     html5QrCode: null,
@@ -20,6 +22,16 @@
     selectedCameraId: null,
     usbBuffer: '',
     usbLastKeyTime: 0,
+    // Face Recognition Biometrics
+    faceApiLoaded: false,
+    faceApiLoading: false,
+    faceVideoTrack: null,
+    faceScannerInterval: null,
+    isFaceScanning: false,
+    enrollVideoTrack: null,
+    enrollDetectionInterval: null,
+    enrollSelectedSiswa: null,
+    enrollCapturedDescriptor: null,
     // In-Memory Caches
     dashboardData: null,
     siswaList: [],
@@ -116,9 +128,14 @@
 
       // Penanganan Khusus View
       if (viewName === 'scanner') {
-        startCameraScanner();
+        if (appState.scannerMethod === 'face') {
+          startFaceAttendanceScanner();
+        } else {
+          startCameraScanner();
+        }
       } else {
         stopCameraScanner();
+        stopFaceAttendanceScanner();
       }
 
       if (viewName === 'siswa') {
@@ -239,21 +256,70 @@
     var ind = document.getElementById('scannerModeIndicator');
     var btnMasuk = document.getElementById('btnModeMasuk');
     var btnPulang = document.getElementById('btnModePulang');
+    var btnIzin = document.getElementById('btnModeIzin');
+    var btnSakit = document.getElementById('btnModeSakit');
+    var ketContainer = document.getElementById('scannerKeteranganContainer');
+
+    var inactiveClass = 'px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition';
+    if (btnMasuk) btnMasuk.className = inactiveClass;
+    if (btnPulang) btnPulang.className = inactiveClass;
+    if (btnIzin) btnIzin.className = inactiveClass;
+    if (btnSakit) btnSakit.className = inactiveClass;
+
+    if (ketContainer) {
+      ketContainer.style.display = (mode === 'izin' || mode === 'sakit') ? 'flex' : 'none';
+    }
 
     if (mode === 'masuk') {
       if (ind) {
         ind.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500 text-slate-950 uppercase tracking-wider';
         ind.innerText = 'MODE: ABSEN MASUK';
       }
-      if (btnMasuk) btnMasuk.className = 'px-4 py-2 rounded-lg text-xs font-bold transition bg-emerald-500 text-slate-950 shadow';
-      if (btnPulang) btnPulang.className = 'px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition';
-    } else {
+      if (btnMasuk) btnMasuk.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-slate-950 shadow';
+    } else if (mode === 'pulang') {
       if (ind) {
         ind.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 uppercase tracking-wider';
         ind.innerText = 'MODE: ABSEN PULANG';
       }
-      if (btnMasuk) btnMasuk.className = 'px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition';
-      if (btnPulang) btnPulang.className = 'px-4 py-2 rounded-lg text-xs font-bold transition bg-amber-400 text-slate-950 shadow';
+      if (btnPulang) btnPulang.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-amber-400 text-slate-950 shadow';
+    } else if (mode === 'izin') {
+      if (ind) {
+        ind.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-blue-500 text-white uppercase tracking-wider';
+        ind.innerText = 'MODE: IZIN SISWA';
+      }
+      if (btnIzin) btnIzin.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-blue-500 text-white shadow';
+    } else if (mode === 'sakit') {
+      if (ind) {
+        ind.className = 'px-2.5 py-1 rounded-full text-xs font-black bg-rose-500 text-white uppercase tracking-wider';
+        ind.innerText = 'MODE: SAKIT';
+      }
+      if (btnSakit) btnSakit.className = 'px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-rose-500 text-white shadow';
+    }
+  }
+
+  function switchScannerMethod(method) {
+    appState.scannerMethod = method;
+    var tabQr = document.getElementById('tabScannerQr');
+    var tabFace = document.getElementById('tabScannerFace');
+    var viewportQr = document.getElementById('scannerQrViewport');
+    var viewportFace = document.getElementById('scannerFaceViewport');
+
+    if (method === 'qr') {
+      if (tabQr) tabQr.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-blue-950 text-white shadow';
+      if (tabFace) tabFace.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-200 text-slate-700 hover:bg-slate-300';
+      if (viewportQr) viewportQr.style.display = 'flex';
+      if (viewportFace) viewportFace.style.display = 'none';
+
+      stopFaceAttendanceScanner();
+      startCameraScanner();
+    } else {
+      if (tabQr) tabQr.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-200 text-slate-700 hover:bg-slate-300';
+      if (tabFace) tabFace.className = 'px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-blue-950 text-white shadow';
+      if (viewportQr) viewportQr.style.display = 'none';
+      if (viewportFace) viewportFace.style.display = 'flex';
+
+      stopCameraScanner();
+      startFaceAttendanceScanner();
     }
   }
 
@@ -454,11 +520,485 @@
     });
   }
 
+  // ==============================================================================
+  // GPS GEOFENCING VALIDATION (HAVERSINE FORMULA)
+  // ==============================================================================
+  function getDistanceFromLatLonInMeters(lat1, lon1, lat2, lon2) {
+    var R = 6371e3; // Radius bumi dalam meter
+    var φ1 = lat1 * Math.PI / 180;
+    var φ2 = lat2 * Math.PI / 180;
+    var Δφ = (lat2 - lat1) * Math.PI / 180;
+    var Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Math.round(R * c);
+  }
+
+  function checkGpsLocationBeforeScan(onSuccess, onError) {
+    var p = appState.pengaturan || {};
+    var gpsEnabled = (p.GpsEnabled === true || p.GpsEnabled === 'true' || p.GpsEnabled === '1' || p.GpsEnabled === 1);
+
+    if (!gpsEnabled) {
+      onSuccess(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      onError('Browser ini tidak mendukung Geolocation GPS.');
+      return;
+    }
+
+    showToast('Memeriksa posisi GPS Anda...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var userLat = pos.coords.latitude;
+        var userLng = pos.coords.longitude;
+        var schoolLat = parseFloat(p.LatitudeSekolah || '-6.208763');
+        var schoolLng = parseFloat(p.LongitudeSekolah || '106.845599');
+        var maxRadius = parseFloat(p.RadiusMeter || '100');
+
+        var distance = getDistanceFromLatLonInMeters(userLat, userLng, schoolLat, schoolLng);
+        var gpsDetail = userLat.toFixed(6) + ',' + userLng.toFixed(6) + ' (' + distance + 'm)';
+
+        if (distance > maxRadius) {
+          var msg = 'Presensi Ditolak! Anda berada di luar radius sekolah. Jarak: ' + distance + ' meter (Batas: ' + maxRadius + 'm).';
+          showToast(msg, 'error');
+          renderResultError('Di Luar Radius Sekolah', msg);
+          onError(msg);
+        } else {
+          onSuccess(gpsDetail);
+        }
+      },
+      function(err) {
+        var errText = 'Akses lokasi (GPS) diperlukan untuk presensi. Mohon aktifkan GPS dan izinkan browser mengakses lokasi.';
+        if (err.code === 1) errText = 'Izin akses lokasi ditolak oleh browser. Mohon izinkan lokasi di setelan browser.';
+        else if (err.code === 2) errText = 'Sinyal GPS tidak ditemukan. Pastikan GPS perangkat aktif.';
+        else if (err.code === 3) errText = 'Waktu permintaan GPS habis. Coba ulangi kembali.';
+        showToast(errText, 'error');
+        renderResultError('Izin GPS Diperlukan', errText);
+        onError(errText);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+    );
+  }
+
+  function getAdminCurrentGpsLocation() {
+    if (!navigator.geolocation) {
+      showToast('Browser Anda tidak mendukung Geolocation.', 'error');
+      return;
+    }
+    showToast('Mengambil koordinat GPS saat ini...', 'info');
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        var lat = pos.coords.latitude.toFixed(6);
+        var lng = pos.coords.longitude.toFixed(6);
+        var latInput = document.getElementById('setLatitudeSekolah');
+        var lngInput = document.getElementById('setLongitudeSekolah');
+        if (latInput) latInput.value = lat;
+        if (lngInput) lngInput.value = lng;
+        showToast('Koordinat berhasil disetel: ' + lat + ', ' + lng, 'success');
+      },
+      function(err) {
+        showToast('Gagal membaca GPS: ' + err.message, 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  // ==============================================================================
+  // BIOMETRIC FACE RECOGNITION (FACE-API.JS)
+  // ==============================================================================
+  function loadFaceApiModels() {
+    if (appState.faceApiLoaded) return Promise.resolve(true);
+    if (appState.faceApiLoading) {
+      return new Promise(function(resolve) {
+        var checkTimer = setInterval(function() {
+          if (appState.faceApiLoaded) {
+            clearInterval(checkTimer);
+            resolve(true);
+          }
+        }, 200);
+      });
+    }
+
+    if (typeof faceapi === 'undefined') {
+      console.warn('Library face-api.js belum termuat di halaman.');
+      return Promise.resolve(false);
+    }
+
+    appState.faceApiLoading = true;
+    var MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
+
+    return Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+    ]).then(function() {
+      appState.faceApiLoaded = true;
+      appState.faceApiLoading = false;
+      console.log('Model Face Recognition berhasil dimuat.');
+      return true;
+    }).catch(function(err) {
+      appState.faceApiLoading = false;
+      console.warn('Gagal memuat model Face API:', err);
+      return false;
+    });
+  }
+
+  function startFaceAttendanceScanner() {
+    if (appState.isFaceScanning) return;
+
+    var video = document.getElementById('faceAttendanceVideo');
+    if (!video) return;
+
+    var statusEl = document.getElementById('faceLiveStatus');
+    if (statusEl) statusEl.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span><span>Memuat model AI pengenal wajah...</span>';
+
+    loadFaceApiModels().then(function(loaded) {
+      if (!loaded) {
+        if (statusEl) statusEl.innerText = 'Gagal memuat model AI. Periksa koneksi internet.';
+        return;
+      }
+
+      if (statusEl) statusEl.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span><span>Menghubungkan kamera face scanner...</span>';
+
+      var constraints = {
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }
+      };
+
+      if (appState.selectedCameraId) {
+        constraints.video.deviceId = { exact: appState.selectedCameraId };
+      }
+
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+          appState.faceVideoTrack = stream;
+          video.srcObject = stream;
+          video.onloadedmetadata = function() {
+            video.play();
+            appState.isFaceScanning = true;
+            if (statusEl) statusEl.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-emerald-700">Kamera aktif: Arahkan wajah ke depan kamera</span>';
+            runFaceAttendanceRecognitionLoop();
+          };
+        })
+        .catch(function(err) {
+          console.warn('Gagal buka kamera face recognition:', err);
+          if (statusEl) statusEl.innerText = 'Kamera tidak dapat diakses: ' + (err.name || err.message);
+        });
+    });
+  }
+
+  function stopFaceAttendanceScanner() {
+    if (appState.faceScannerInterval) {
+      clearInterval(appState.faceScannerInterval);
+      appState.faceScannerInterval = null;
+    }
+    if (appState.faceVideoTrack) {
+      appState.faceVideoTrack.getTracks().forEach(function(t) { t.stop(); });
+      appState.faceVideoTrack = null;
+    }
+    appState.isFaceScanning = false;
+  }
+
+  function runFaceAttendanceRecognitionLoop() {
+    var video = document.getElementById('faceAttendanceVideo');
+    var canvas = document.getElementById('faceAttendanceCanvas');
+    var statusEl = document.getElementById('faceLiveStatus');
+    if (!video || !canvas) return;
+
+    appState.faceScannerInterval = setInterval(async function() {
+      if (!appState.isFaceScanning || video.paused || video.ended) return;
+
+      try {
+        var detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        var displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
+        faceapi.matchDimensions(canvas, displaySize);
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (detection) {
+          var resized = faceapi.resizeResults(detection, displaySize);
+          var box = resized.detection.box;
+
+          var bestMatch = findBestFaceMatch(detection.descriptor);
+
+          if (bestMatch && bestMatch.distance < 0.5) {
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(box.x, Math.max(0, box.y - 24), box.width, 24);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(bestMatch.siswa.nama, box.x + 4, Math.max(16, box.y - 7));
+
+            if (statusEl) {
+              statusEl.innerHTML = '<span class="text-emerald-700 font-extrabold">✓ Terdeteksi: ' + bestMatch.siswa.nama + ' (' + bestMatch.siswa.nis + ')</span>';
+            }
+
+            onQrCodeScanned(bestMatch.siswa.nis);
+          } else {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            if (statusEl) {
+              statusEl.innerHTML = '<span class="text-amber-700 font-bold">Wajah terdeteksi (Belum terdaftar di sistem)</span>';
+            }
+          }
+        } else {
+          if (statusEl) {
+            statusEl.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span>Mencari wajah di depan kamera...</span>';
+          }
+        }
+      } catch (e) {
+        // frame pass
+      }
+    }, 400);
+  }
+
+  function findBestFaceMatch(liveDescriptor) {
+    if (!appState.siswaList || appState.siswaList.length === 0) return null;
+    var bestSiswa = null;
+    var lowestDistance = 999;
+
+    appState.siswaList.forEach(function(s) {
+      if (!s.faceDescriptor) return;
+      try {
+        var regDesc = typeof s.faceDescriptor === 'string' ? JSON.parse(s.faceDescriptor) : s.faceDescriptor;
+        if (Array.isArray(regDesc) && regDesc.length === 128) {
+          var dist = faceapi.euclideanDistance(liveDescriptor, regDesc);
+          if (dist < lowestDistance) {
+            lowestDistance = dist;
+            bestSiswa = s;
+          }
+        }
+      } catch (e) {}
+    });
+
+    if (bestSiswa) {
+      return { siswa: bestSiswa, distance: lowestDistance };
+    }
+    return null;
+  }
+
+  // ==============================================================================
+  // MODAL PENDAFTARAN WAJAH SISWA (FACE ENROLLMENT)
+  // ==============================================================================
+  function openFaceEnrollmentModal(siswaId) {
+    var s = appState.siswaList.find(function(item) { return item.id === siswaId; });
+    if (!s) {
+      showToast('Data siswa tidak ditemukan!', 'error');
+      return;
+    }
+
+    appState.enrollSelectedSiswa = s;
+    appState.enrollCapturedDescriptor = null;
+
+    var infoEl = document.getElementById('enrollStudentInfo');
+    if (infoEl) {
+      infoEl.innerText = s.nama + ' (NIS: ' + s.nis + ' - ' + s.kelas + ')';
+    }
+
+    var btnCapture = document.getElementById('btnCaptureFace');
+    if (btnCapture) btnCapture.disabled = true;
+
+    var qualityBadge = document.getElementById('enrollQualityBadge');
+    if (qualityBadge) {
+      qualityBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600';
+      qualityBadge.innerText = 'Menyiapkan Kamera...';
+    }
+
+    var modal = document.getElementById('modalFaceEnrollment');
+    if (modal) modal.style.display = 'flex';
+
+    loadFaceApiModels().then(function() {
+      startEnrollVideoCamera();
+    });
+  }
+
+  function startEnrollVideoCamera() {
+    var video = document.getElementById('enrollVideo');
+    if (!video) return;
+
+    var constraints = {
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        facingMode: 'user'
+      }
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(function(stream) {
+        appState.enrollVideoTrack = stream;
+        video.srcObject = stream;
+        video.onloadedmetadata = function() {
+          video.play();
+          startEnrollFaceDetectionLoop();
+        };
+      })
+      .catch(function(err) {
+        showToast('Gagal mengakses kamera registrasi: ' + err.message, 'error');
+      });
+  }
+
+  function startEnrollFaceDetectionLoop() {
+    var video = document.getElementById('enrollVideo');
+    var canvas = document.getElementById('enrollCanvas');
+    var feedback = document.getElementById('enrollFeedback');
+    var badge = document.getElementById('enrollQualityBadge');
+    var btn = document.getElementById('btnCaptureFace');
+
+    if (!video || !canvas) return;
+
+    var intervalId = setInterval(async function() {
+      if (!appState.enrollVideoTrack || video.paused || video.ended) {
+        clearInterval(intervalId);
+        return;
+      }
+
+      if (!appState.faceApiLoaded) return;
+
+      try {
+        var detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        var displaySize = { width: video.videoWidth || 640, height: video.videoHeight || 480 };
+        faceapi.matchDimensions(canvas, displaySize);
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (detection) {
+          var resized = faceapi.resizeResults(detection, displaySize);
+          var box = resized.detection.box;
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+          appState.enrollCapturedDescriptor = Array.from(detection.descriptor);
+
+          if (badge) {
+            badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
+            badge.innerText = 'Wajah Siap Direkam!';
+          }
+          if (feedback) {
+            feedback.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span><span class="text-emerald-700 font-bold">Posisi pas! Tekan tombol Ambil & Rekam Wajah.</span>';
+          }
+          if (btn) btn.disabled = false;
+        } else {
+          appState.enrollCapturedDescriptor = null;
+          if (badge) {
+            badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800';
+            badge.innerText = 'Mencari Wajah...';
+          }
+          if (feedback) {
+            feedback.innerHTML = '<span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span><span>Posisikan wajah tegak lurus di dalam lingkaran oval...</span>';
+          }
+          if (btn) btn.disabled = true;
+        }
+      } catch (e) {}
+    }, 350);
+
+    appState.enrollDetectionInterval = intervalId;
+  }
+
+  function captureAndSaveFace() {
+    if (!appState.enrollCapturedDescriptor || !appState.enrollSelectedSiswa) {
+      showToast('Wajah belum terdeteksi dengan jelas!', 'warning');
+      return;
+    }
+
+    var btn = document.getElementById('btnCaptureFace');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = 'Menyimpan...';
+    }
+
+    var s = appState.enrollSelectedSiswa;
+    var descriptorStr = JSON.stringify(appState.enrollCapturedDescriptor);
+
+    if (isGAS()) {
+      google.script.run
+        .withSuccessHandler(function (resp) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '📸 Ambil & Rekam Wajah';
+          }
+          if (resp && resp.status === 'success') {
+            showToast('Biometrik wajah ' + s.nama + ' berhasil didaftarkan!', 'success');
+            s.faceDescriptor = descriptorStr;
+            closeFaceEnrollmentModal();
+            renderSiswaTable(appState.siswaList);
+          } else {
+            showToast(resp ? resp.message : 'Gagal simpan wajah', 'error');
+          }
+        })
+        .withFailureHandler(function (err) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = '📸 Ambil & Rekam Wajah';
+          }
+          showToast('Koneksi gagal: ' + err.toString(), 'error');
+        })
+        .saveFaceDescriptor({
+          id: s.id,
+          nis: s.nis,
+          descriptor: descriptorStr
+        });
+    } else {
+      setTimeout(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '📸 Ambil & Rekam Wajah';
+        }
+        showToast('Wajah berhasil disimpan (Preview Mode)!', 'success');
+        s.faceDescriptor = descriptorStr;
+        closeFaceEnrollmentModal();
+        renderSiswaTable(appState.siswaList);
+      }, 500);
+    }
+  }
+
+  function closeFaceEnrollmentModal() {
+    if (appState.enrollDetectionInterval) {
+      clearInterval(appState.enrollDetectionInterval);
+      appState.enrollDetectionInterval = null;
+    }
+    if (appState.enrollVideoTrack) {
+      appState.enrollVideoTrack.getTracks().forEach(function(t) { t.stop(); });
+      appState.enrollVideoTrack = null;
+    }
+    var modal = document.getElementById('modalFaceEnrollment');
+    if (modal) modal.style.display = 'none';
+  }
+
   // Global window exposure for HTML event handlers
   window.startCameraScanner = startCameraScanner;
   window.stopCameraScanner = stopCameraScanner;
   window.switchCamera = switchCamera;
   window.retryCameraScanner = retryCameraScanner;
+  window.setScannerMode = setScannerMode;
+  window.switchScannerMethod = switchScannerMethod;
+  window.startFaceAttendanceScanner = startFaceAttendanceScanner;
+  window.stopFaceAttendanceScanner = stopFaceAttendanceScanner;
+  window.openFaceEnrollmentModal = openFaceEnrollmentModal;
+  window.closeFaceEnrollmentModal = closeFaceEnrollmentModal;
+  window.captureAndSaveFace = captureAndSaveFace;
+  window.getAdminCurrentGpsLocation = getAdminCurrentGpsLocation;
 
   function onQrCodeScanned(rawText) {
     var now = Date.now();
@@ -527,49 +1067,66 @@
   function processAttendanceScan(rawText) {
     var cleanNis = rawText.replace(/^SISWA-/i, '').trim();
 
+    var userKet = '';
+    if (appState.scannerMode === 'izin' || appState.scannerMode === 'sakit') {
+      var ketInput = document.getElementById('scannerKeteranganInput');
+      userKet = ketInput ? ketInput.value.trim() : '';
+    }
+
     var resultCard = document.getElementById('scanResultCard');
     if (resultCard) {
-      resultCard.innerHTML = '<div class="flex flex-col items-center justify-center py-8"><div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-xs font-bold text-slate-700">Memverifikasi Kartu Siswa...</p></div>';
+      resultCard.innerHTML = '<div class="flex flex-col items-center justify-center py-8"><div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-3"></div><p class="text-xs font-bold text-slate-700">Memverifikasi Data & GPS...</p></div>';
     }
 
-    var payload = {
-      nis: cleanNis,
-      mode: appState.scannerMode
-    };
-
-    if (isGAS()) {
-      google.script.run
-        .withSuccessHandler(function (resp) {
-          handleAttendanceResponse(resp);
-        })
-        .withFailureHandler(function (err) {
-          playAudioFeedback('error');
-          showToast('Koneksi server gagal: ' + err.toString(), 'error');
-          renderResultError('Gangguan Server', err.toString());
-        })
-        .rekamPresensi(payload);
-    } else {
-      // Safe Preview Mode Mock Simulation
-      setTimeout(function () {
-        var mockSiswa = appState.siswaList.find(function (s) { return s.nis === cleanNis; }) || {
-          id: 'SIS-999',
+    // VALIDASI GPS GEOFENCING SEBELUM REKAM PRESENSI
+    checkGpsLocationBeforeScan(
+      function(gpsDetail) {
+        var payload = {
           nis: cleanNis,
-          nama: 'Siswa Contoh ' + cleanNis,
-          kelas: 'X RPL 1',
-          status: 'Aktif'
-        };
-        var mockResp = {
-          status: 'success',
           mode: appState.scannerMode,
-          message: 'Presensi ' + (appState.scannerMode === 'masuk' ? 'Masuk' : 'Pulang') + ' Berhasil!',
-          siswa: mockSiswa,
-          jam: new Date().toTimeString().split(' ')[0],
-          presensiStatus: 'Hadir',
-          keterangan: 'Tepat Waktu'
+          keterangan: userKet,
+          lokasiGps: gpsDetail || ''
         };
-        handleAttendanceResponse(mockResp);
-      }, 400);
-    }
+
+        if (isGAS()) {
+          google.script.run
+            .withSuccessHandler(function (resp) {
+              handleAttendanceResponse(resp);
+            })
+            .withFailureHandler(function (err) {
+              playAudioFeedback('error');
+              showToast('Koneksi server gagal: ' + err.toString(), 'error');
+              renderResultError('Gangguan Server', err.toString());
+            })
+            .rekamPresensi(payload);
+        } else {
+          // Safe Preview Mode Mock Simulation
+          setTimeout(function () {
+            var mockSiswa = appState.siswaList.find(function (s) { return s.nis === cleanNis; }) || {
+              id: 'SIS-999',
+              nis: cleanNis,
+              nama: 'Siswa Contoh ' + cleanNis,
+              kelas: 'X RPL 1',
+              status: 'Aktif'
+            };
+            var stMode = appState.scannerMode === 'masuk' ? 'Hadir' : (appState.scannerMode === 'pulang' ? 'Hadir' : (appState.scannerMode === 'izin' ? 'Izin' : 'Sakit'));
+            var mockResp = {
+              status: 'success',
+              mode: appState.scannerMode,
+              message: 'Presensi ' + stMode + ' Berhasil!',
+              siswa: mockSiswa,
+              jam: new Date().toTimeString().split(' ')[0],
+              presensiStatus: stMode,
+              keterangan: userKet || (stMode + ' Tepat Waktu' + (gpsDetail ? ' [GPS: ' + gpsDetail + ']' : ''))
+            };
+            handleAttendanceResponse(mockResp);
+          }, 400);
+        }
+      },
+      function(gpsError) {
+        playAudioFeedback('error');
+      }
+    );
   }
 
   function handleAttendanceResponse(resp) {
@@ -594,14 +1151,18 @@
     if (!card) return;
 
     var s = resp.siswa || {};
-    var badgeColor = resp.presensiStatus === 'Hadir' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300';
+    var st = resp.presensiStatus || 'Hadir';
+    var badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    if (st === 'Terlambat') badgeColor = 'bg-amber-100 text-amber-900 border-amber-300';
+    else if (st === 'Izin') badgeColor = 'bg-blue-100 text-blue-900 border-blue-300';
+    else if (st === 'Sakit') badgeColor = 'bg-rose-100 text-rose-900 border-rose-300';
 
     card.innerHTML =
       '<div class="w-20 h-20 rounded-full bg-emerald-100 border-4 border-emerald-400 flex items-center justify-center text-emerald-700 font-extrabold text-2xl mb-3 shadow-md">' +
       (s.nama ? s.nama.charAt(0) : 'S') +
       '</div>' +
       '<span class="inline-block px-3 py-1 rounded-full text-[11px] font-black border uppercase tracking-wider mb-2 ' + badgeColor + '">' +
-      (resp.presensiStatus || 'Hadir') + ' (' + resp.jam + ')' +
+      st + ' (' + resp.jam + ')' +
       '</span>' +
       '<h3 class="text-lg font-black text-slate-900 tracking-tight">' + s.nama + '</h3>' +
       '<p class="text-xs font-semibold text-slate-500 mt-0.5">NIS: ' + s.nis + ' | Kelas: ' + s.kelas + '</p>' +
@@ -824,13 +1385,17 @@
     if (!tbody) return;
 
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center py-8 text-slate-400">Tidak ada data siswa ditemukan.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-8 text-slate-400">Tidak ada data siswa ditemukan.</td></tr>';
       return;
     }
 
     var html = '';
     list.forEach(function (s) {
       var statusClass = s.status === 'Aktif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600';
+      var faceBadge = s.faceDescriptor
+        ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 mr-1">✓ Terdaftar</span><button onclick="openFaceEnrollmentModal(\'' + s.id + '\')" title="Perbarui Wajah" class="p-1 hover:bg-slate-200 rounded text-slate-600 text-xs">🔄</button>'
+        : '<button onclick="openFaceEnrollmentModal(\'' + s.id + '\')" class="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded text-[11px] font-bold transition">+ Rekam</button>';
+
       html +=
         '<tr class="hover:bg-slate-50 transition">' +
         '<td class="py-3 px-4 font-mono text-slate-400">' + s.id + '</td>' +
@@ -843,6 +1408,9 @@
         '<button onclick="previewQrSiswa(\'' + s.nis + '\', \'' + escapeHtml(s.nama) + '\', \'' + s.kelas + '\')" class="text-blue-900 hover:text-amber-600 font-bold text-xs">' +
         'Lihat QR' +
         '</button>' +
+        '</td>' +
+        '<td class="py-3 px-4 text-center">' +
+        faceBadge +
         '</td>' +
         '<td class="py-3 px-4 text-right space-x-2">' +
         '<button onclick="editSiswa(\'' + s.id + '\')" class="text-blue-900 hover:underline font-semibold">Edit</button>' +
@@ -1701,6 +2269,12 @@
     if (document.getElementById('setJamMasukMulai')) document.getElementById('setJamMasukMulai').value = p.JamMasukMulai || '06:00';
     if (document.getElementById('setJamMasukBatas')) document.getElementById('setJamMasukBatas').value = p.JamMasukBatas || '07:15';
     if (document.getElementById('setJamPulangMulai')) document.getElementById('setJamPulangMulai').value = p.JamPulangMulai || '14:00';
+    if (document.getElementById('setLatitudeSekolah')) document.getElementById('setLatitudeSekolah').value = p.LatitudeSekolah || '-6.208763';
+    if (document.getElementById('setLongitudeSekolah')) document.getElementById('setLongitudeSekolah').value = p.LongitudeSekolah || '106.845599';
+    if (document.getElementById('setRadiusMeter')) document.getElementById('setRadiusMeter').value = p.RadiusMeter || '100';
+    if (document.getElementById('setGpsEnabled')) {
+      document.getElementById('setGpsEnabled').checked = (p.GpsEnabled === true || p.GpsEnabled === 'true' || p.GpsEnabled === '1');
+    }
   }
 
   function handleSavePengaturan(e) {
@@ -1710,12 +2284,16 @@
     btn.innerText = 'Menyimpan...';
 
     var payload = {
-      NamaSekolah: document.getElementById('setNamaSekolah').value.trim(),
-      AlamatSekolah: document.getElementById('setAlamatSekolah').value.trim(),
-      NamaKepsek: document.getElementById('setNamaKepsek').value.trim(),
-      JamMasukMulai: document.getElementById('setJamMasukMulai').value,
-      JamMasukBatas: document.getElementById('setJamMasukBatas').value,
-      JamPulangMulai: document.getElementById('setJamPulangMulai').value
+      NamaSekolah: document.getElementById('setNamaSekolah') ? document.getElementById('setNamaSekolah').value.trim() : '',
+      AlamatSekolah: document.getElementById('setAlamatSekolah') ? document.getElementById('setAlamatSekolah').value.trim() : '',
+      NamaKepsek: document.getElementById('setNamaKepsek') ? document.getElementById('setNamaKepsek').value.trim() : '',
+      JamMasukMulai: document.getElementById('setJamMasukMulai') ? document.getElementById('setJamMasukMulai').value : '06:00',
+      JamMasukBatas: document.getElementById('setJamMasukBatas') ? document.getElementById('setJamMasukBatas').value : '07:15',
+      JamPulangMulai: document.getElementById('setJamPulangMulai') ? document.getElementById('setJamPulangMulai').value : '14:00',
+      LatitudeSekolah: document.getElementById('setLatitudeSekolah') ? document.getElementById('setLatitudeSekolah').value.trim() : '-6.208763',
+      LongitudeSekolah: document.getElementById('setLongitudeSekolah') ? document.getElementById('setLongitudeSekolah').value.trim() : '106.845599',
+      RadiusMeter: document.getElementById('setRadiusMeter') ? document.getElementById('setRadiusMeter').value.trim() : '100',
+      GpsEnabled: document.getElementById('setGpsEnabled') ? document.getElementById('setGpsEnabled').checked.toString() : 'false'
     };
 
     if (isGAS()) {

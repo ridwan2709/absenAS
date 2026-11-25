@@ -10,10 +10,10 @@
 /**
  * Pemetaan Indeks Kolom Baku (Index-Based Mapping - Kebal Modifikasi Label Header)
  */
-var COL_SISWA = { ID: 0, NIS: 1, NAMA: 2, KELAS: 3, JK: 4, FOTO: 5, STATUS: 6, CREATED_AT: 7 };
+var COL_SISWA = { ID: 0, NIS: 1, NAMA: 2, KELAS: 3, JK: 4, FOTO: 5, STATUS: 6, CREATED_AT: 7, FACE_DESCRIPTOR: 8 };
 var COL_KELAS = { ID: 0, NAMA_KELAS: 1, JURUSAN: 2, TINGKAT: 3, WALI_KELAS: 4 };
 var COL_SEMESTER = { ID: 0, TAHUN_AJARAN: 1, SEMESTER: 2, STATUS_AKTIF: 3, KETERANGAN: 4 };
-var COL_PRESENSI = { ID: 0, TANGGAL: 1, NIS: 2, NAMA: 3, KELAS: 4, SEMESTER_ID: 5, JAM_MASUK: 6, JAM_PULANG: 7, STATUS: 8, KETERANGAN: 9 };
+var COL_PRESENSI = { ID: 0, TANGGAL: 1, NIS: 2, NAMA: 3, KELAS: 4, SEMESTER_ID: 5, JAM_MASUK: 6, JAM_PULANG: 7, STATUS: 8, KETERANGAN: 9, LOKASI_GPS: 10 };
 var COL_PENGATURAN = { KUNCI: 0, NILAI: 1 };
 var COL_PENGUMUMAN = { ID: 0, JUDUL: 1, TANGGAL_AGENDA: 2, KATEGORI: 3, WARNA: 4 };
 
@@ -83,6 +83,9 @@ function handleApiRequest(action, args) {
         break;
       case 'saveSiswa':
         result = saveSiswa(args[0]);
+        break;
+      case 'saveFaceDescriptor':
+        result = saveFaceDescriptor(args[0]);
         break;
       case 'deleteSiswa':
         result = deleteSiswa(args[0]);
@@ -175,10 +178,10 @@ function getNowJakarta(format) {
 function setupDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var schemas = {
-    'Siswa': ['ID', 'NIS', 'Nama', 'Kelas', 'JK', 'Foto', 'Status', 'CreatedAt'],
+    'Siswa': ['ID', 'NIS', 'Nama', 'Kelas', 'JK', 'Foto', 'Status', 'CreatedAt', 'FaceDescriptor'],
     'Kelas': ['ID', 'NamaKelas', 'Jurusan', 'Tingkat', 'WaliKelas'],
     'Semester': ['ID', 'TahunAjaran', 'Semester', 'StatusAktif', 'Keterangan'],
-    'Presensi': ['ID', 'Tanggal', 'NIS', 'Nama', 'Kelas', 'SemesterID', 'JamMasuk', 'JamPulang', 'Status', 'Keterangan'],
+    'Presensi': ['ID', 'Tanggal', 'NIS', 'Nama', 'Kelas', 'SemesterID', 'JamMasuk', 'JamPulang', 'Status', 'Keterangan', 'LokasiGPS'],
     'Pengaturan': ['Kunci', 'Nilai'],
     'Pengumuman': ['ID', 'Judul', 'TanggalAgenda', 'Kategori', 'Warna']
   };
@@ -354,13 +357,15 @@ function rekamPresensi(payload) {
     lock.waitLock(10000); // Kunci transaksi anti-tabrakan multi-scan
 
     var rawNis = (payload.nis || '').toString().trim();
-    var mode = (payload.mode || 'masuk').toLowerCase(); // 'masuk' atau 'pulang'
+    var mode = (payload.mode || 'masuk').toLowerCase(); // 'masuk', 'pulang', 'izin', 'sakit'
+    var userKet = (payload.keterangan || '').trim();
+    var lokasiGps = (payload.lokasiGps || '').trim();
 
     // Pembersihan jika payload QR berupa format 'SISWA-1001'
     var cleanNis = rawNis.replace(/^SISWA-/i, '').trim();
 
     var siswaSheet = getSheet('Siswa');
-    var siswaRows = siswaSheet.getLastRow() > 1 ? siswaSheet.getRange(2, 1, siswaSheet.getLastRow() - 1, 8).getDisplayValues() : [];
+    var siswaRows = siswaSheet.getLastRow() > 1 ? siswaSheet.getRange(2, 1, siswaSheet.getLastRow() - 1, 9).getDisplayValues() : [];
     
     var siswaFound = null;
     for (var i = 0; i < siswaRows.length; i++) {
@@ -372,14 +377,15 @@ function rekamPresensi(payload) {
           kelas: siswaRows[i][COL_SISWA.KELAS],
           jk: siswaRows[i][COL_SISWA.JK],
           foto: siswaRows[i][COL_SISWA.FOTO],
-          status: siswaRows[i][COL_SISWA.STATUS]
+          status: siswaRows[i][COL_SISWA.STATUS],
+          faceDescriptor: siswaRows[i][8] || ''
         };
         break;
       }
     }
 
     if (!siswaFound) {
-      return { status: 'error', code: 'NOT_FOUND', message: 'Kartu QR tidak dikenali! Siswa dengan NIS ' + cleanNis + ' belum terdaftar.' };
+      return { status: 'error', code: 'NOT_FOUND', message: 'Siswa dengan NIS ' + cleanNis + ' belum terdaftar!' };
     }
 
     if (siswaFound.status !== 'Aktif') {
@@ -392,7 +398,7 @@ function rekamPresensi(payload) {
     var batasMasuk = pengaturan.JamMasukBatas || '07:15';
 
     var presensiSheet = getSheet('Presensi');
-    var presensiRows = presensiSheet.getLastRow() > 1 ? presensiSheet.getRange(2, 1, presensiSheet.getLastRow() - 1, 10).getDisplayValues() : [];
+    var presensiRows = presensiSheet.getLastRow() > 1 ? presensiSheet.getRange(2, 1, presensiSheet.getLastRow() - 1, 11).getDisplayValues() : [];
     
     var targetRowIdx = -1;
     var existingRecord = null;
@@ -407,6 +413,47 @@ function rekamPresensi(payload) {
 
     // Ambil ID Semester Aktif
     var semesterAktifId = getSemesterAktifId();
+
+    // Penanganan Mode Izin atau Sakit
+    if (mode === 'izin' || mode === 'sakit') {
+      var statusKhusus = mode === 'izin' ? 'Izin' : 'Sakit';
+      var ketKhusus = userKet || (mode === 'izin' ? 'Izin Siswa' : 'Sakit Siswa');
+      if (lokasiGps) ketKhusus += ' [GPS: ' + lokasiGps + ']';
+
+      if (targetRowIdx > 0) {
+        presensiSheet.getRange(targetRowIdx, COL_PRESENSI.STATUS + 1).setValue(statusKhusus);
+        presensiSheet.getRange(targetRowIdx, COL_PRESENSI.KETERANGAN + 1).setValue(ketKhusus);
+        if (presensiSheet.getLastColumn() >= 11) {
+          presensiSheet.getRange(targetRowIdx, 11).setValue(lokasiGps);
+        }
+      } else {
+        var newAbsenIdKhusus = 'ABS-' + todayStr.replace(/-/g, '') + '-' + ('000' + (presensiSheet.getLastRow())).slice(-3);
+        presensiSheet.appendRow([
+          newAbsenIdKhusus,
+          todayStr,
+          siswaFound.nis,
+          siswaFound.nama,
+          siswaFound.kelas,
+          semesterAktifId,
+          nowTimeStr,
+          '',
+          statusKhusus,
+          ketKhusus,
+          lokasiGps
+        ]);
+      }
+
+      SpreadsheetApp.flush();
+      return {
+        status: 'success',
+        mode: mode,
+        message: 'Presensi ' + statusKhusus + ' Berhasil Dicatat!',
+        siswa: siswaFound,
+        jam: nowTimeStr,
+        presensiStatus: statusKhusus,
+        keterangan: ketKhusus
+      };
+    }
 
     if (mode === 'masuk') {
       if (existingRecord && existingRecord[COL_PRESENSI.JAM_MASUK]) {
@@ -433,12 +480,16 @@ function rekamPresensi(payload) {
         var selisih = nowMinutes - batasMinutes;
         keterangan = 'Terlambat ' + selisih + ' menit';
       }
+      if (lokasiGps) keterangan += ' [GPS: ' + lokasiGps + ']';
 
       if (targetRowIdx > 0) {
         // Update baris yang sudah ada
         presensiSheet.getRange(targetRowIdx, COL_PRESENSI.JAM_MASUK + 1).setValue(nowTimeStr);
         presensiSheet.getRange(targetRowIdx, COL_PRESENSI.STATUS + 1).setValue(statusMasuk);
         presensiSheet.getRange(targetRowIdx, COL_PRESENSI.KETERANGAN + 1).setValue(keterangan);
+        if (presensiSheet.getLastColumn() >= 11) {
+          presensiSheet.getRange(targetRowIdx, 11).setValue(lokasiGps);
+        }
       } else {
         // Buat baris baru
         var newAbsenId = 'ABS-' + todayStr.replace(/-/g, '') + '-' + ('000' + (presensiSheet.getLastRow())).slice(-3);
@@ -452,7 +503,8 @@ function rekamPresensi(payload) {
           nowTimeStr,
           '',
           statusMasuk,
-          keterangan
+          keterangan,
+          lokasiGps
         ]);
       }
 
@@ -480,8 +532,14 @@ function rekamPresensi(payload) {
         };
       }
 
+      var ketPulang = 'Pulang';
+      if (lokasiGps) ketPulang += ' [GPS: ' + lokasiGps + ']';
+
       if (targetRowIdx > 0) {
         presensiSheet.getRange(targetRowIdx, COL_PRESENSI.JAM_PULANG + 1).setValue(nowTimeStr);
+        if (presensiSheet.getLastColumn() >= 11) {
+          presensiSheet.getRange(targetRowIdx, 11).setValue(lokasiGps);
+        }
       } else {
         // Belum absen masuk, langsung absen pulang
         var newAbsenIdPulang = 'ABS-' + todayStr.replace(/-/g, '') + '-' + ('000' + (presensiSheet.getLastRow())).slice(-3);
@@ -495,7 +553,8 @@ function rekamPresensi(payload) {
           '',
           nowTimeStr,
           'Hadir',
-          'Absen Pulang Saja'
+          'Absen Pulang Saja' + (lokasiGps ? ' [GPS: ' + lokasiGps + ']' : ''),
+          lokasiGps
         ]);
       }
 
@@ -507,7 +566,7 @@ function rekamPresensi(payload) {
         siswa: siswaFound,
         jam: nowTimeStr,
         presensiStatus: existingRecord ? existingRecord[COL_PRESENSI.STATUS] : 'Hadir',
-        keterangan: 'Pulang'
+        keterangan: ketPulang
       };
     }
 
@@ -525,7 +584,7 @@ function rekamPresensi(payload) {
 function getSiswaList(filterKelas, search) {
   try {
     var sheet = getSheet('Siswa');
-    var rows = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 8).getDisplayValues() : [];
+    var rows = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues() : [];
     var result = [];
 
     var fKelas = (filterKelas || '').toLowerCase();
@@ -544,7 +603,8 @@ function getSiswaList(filterKelas, search) {
           jk: r[COL_SISWA.JK],
           foto: r[COL_SISWA.FOTO],
           status: r[COL_SISWA.STATUS],
-          createdAt: r[COL_SISWA.CREATED_AT]
+          createdAt: r[COL_SISWA.CREATED_AT],
+          faceDescriptor: r[8] || ''
         });
       }
     });
@@ -552,6 +612,38 @@ function getSiswaList(filterKelas, search) {
     return { status: 'success', data: result };
   } catch (err) {
     return { status: 'error', message: err.toString() };
+  }
+}
+
+function saveFaceDescriptor(payload) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    var sheet = getSheet('Siswa');
+    var rows = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 9).getDisplayValues() : [];
+    var siswaId = payload.id || '';
+    var nis = payload.nis || '';
+    var descriptor = payload.descriptor || '';
+
+    var targetRow = -1;
+    for (var i = 0; i < rows.length; i++) {
+      if ((siswaId && rows[i][0] === siswaId) || (nis && rows[i][1] === nis)) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return { status: 'error', message: 'Siswa tidak ditemukan untuk registrasi wajah!' };
+    }
+
+    sheet.getRange(targetRow, 9).setValue(descriptor);
+    SpreadsheetApp.flush();
+    return { status: 'success', message: 'Biometrik wajah siswa berhasil disimpan!' };
+  } catch (err) {
+    return { status: 'error', message: err.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }
 

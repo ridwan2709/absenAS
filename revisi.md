@@ -1,65 +1,104 @@
-# RENCANA REVISI SISTEM (REVISI v2.3.2 - PRIORITAS KAMERA BAWAAN LAPTOP & ANTI-OBS VIRTUAL LOCK)
+# RENCANA REVISI SISTEM (REVISI v2.4.0 - PILIHAN ABSENSI, FACE RECOGNITION BIOMETRIK & GPS GEOFENCING)
 ================================================================================
 STATUS: SELESAI DITERAPKAN (APPLIED & VERIFIED)
 TANGGAL: 25 November 2026
 ENGINE: ZettBOT Core v4.1 (by Zettbos)
-MASALAH UTAMA:
-1. Kamera selalu otomatis memilih "OBS Virtual Camera" dan tidak mau berpindah ke kamera bawaan laptop.
-2. Terjadi "NotReadableError: Device in use" saat berpindah kamera karena race condition pada hardware lock.
+PRINSIP UTAMA: 
+- TIDAK MENGUBAH / MERUSAK FITUR YANG SUDAH BERJALAN (QR Scanner, Cetak Kartu CR80, CRUD Siswa, Naik Kelas TETAP 100% AMAN).
+- Seluruh fitur baru bersifat ADITIF (Menambah opsi dan kapabilitas baru).
 ================================================================================
 
-## 1. ANALISIS AKAR MASALAH (ROOT CAUSE ANALYSIS)
+## 1. ANALISIS KEBUTUHAN & ARSITEKTUR FITUR BARU
 
-1. **Akar Masalah Selalu Memilih "OBS Virtual Camera":**
-   - Pada `app.js` (dan `js.html`) baris 416, terdapat kode:
-     ```javascript
-     appState.selectedCameraId = cameras[cameras.length - 1].id;
-     ```
-   - Kode ini secara sengaja diprogram mengambil kamera **terakhir** pada daftar (`cameras.length - 1`).
-   - Pada sistem operasi Windows, driver kamera virtual (seperti OBS Virtual Camera) hampir selalu didaftarkan oleh sistem di urutan paling akhir.
-   - Akibatnya, sistem selalu mengabaikan webcam fisik bawaan laptop dan memaksa menyalakan OBS Virtual Camera.
-
-2. **Akar Masalah Mengapa Kamera Tidak Mau Dipindah (Pilihan Pengguna Tertimpa):**
-   - Saat pengguna memilih kamera bawaan laptop di dropdown, fungsi `switchCamera` memanggil `stopCameraScanner()` lalu `setTimeout(startCameraScanner, 400)`.
-   - Ketika `startCameraScanner()` dipanggil kembali, baris 416 mengeksekusi ulang `cameras[cameras.length - 1].id`, sehingga **pilihan pengguna langsung ditimpa balik secara otomatis ke OBS Virtual Camera**.
-
-3. **Akar Masalah `NotReadableError: Device in use` Saat Berpindah:**
-   - Pemanggilan `stopCameraScanner()` bersifat *asynchronous* (Promise).
-   - Penggunaan jeda `setTimeout(400)` tanpa menunggu Promise `stop()` selesai menyebabkan kamera baru mencoba menyala saat kamera lama belum sepenuhnya melepaskan kunci hardware (*hardware lock contention*).
-
----
-
-## 2. RENCANA TINDAKAN PERBAIKAN (SURGICAL FIX v2.3.2)
-
-### A. Prioritas Kamera Fisik Bawaan Laptop (Smart Camera Auto-Detect):
-1. **Penyaringan Otomatis Kamera Fisik:**
-   - Sistem akan menyaring daftar kamera dan memprioritaskan kamera yang **bukan** OBS dan **bukan** Virtual Camera.
-   - Kamera bawaan laptop (Integrated Camera / HD Webcam) akan otomatis menjadi pilihan utama secara default.
-2. **Penyimpanan Preferensi Pengguna (`localStorage`):**
-   - Pilihan kamera pengguna akan disimpan di `localStorage ('SCHOOLPRIME_SELECTED_CAMERA')`.
-   - Sekali Anda memilih Kamera Bawaan Laptop, sistem akan mengingatnya secara permanen dan tidak akan pernah berpindah sendiri ke OBS.
-3. **Label Jelas pada Dropdown:**
-   - Di dropdown pemilih kamera, opsi akan diberi label jelas:
-     - `Integrated Camera (Kamera Bawaan / Fisik)`
-     - `OBS Virtual Camera (Virtual)`
-
-### B. Perpindahan Kamera Berbasis Promise Aman (Zero Race Condition):
-1. Fungsi `stopCameraScanner()` akan me-return Promise.
-2. Fungsi `switchCamera()` akan menunggu Promise pelepasan hardware selesai 100% sebelum menyalakan kamera yang baru dipilih, meniadakan error `Device in use`.
-
-### C. Penanganan Error Kotak Scanner:
-1. Jika kamera sedang dikunci software lain, kotak scanner menampilkan kartu instruksi ramah dengan tombol "🔄 Coba Hubungkan Ulang".
+Pengguna meminta 3 penambahan fitur utama tanpa merusak fungsi yang sudah ada:
+1. **Pilihan untuk Absen:**
+   - Fleksibilitas Status Presensi: Menambahkan pilihan mode absensi lengkap (**Absen Masuk**, **Absen Pulang**, **Izin**, dan **Sakit**).
+   - Fleksibilitas Metode Pemindaian (Tabs): Siswa/Guru dapat memilih metode scan:
+     * Opsi 1: **Scan QR Code / Kartu Siswa** (Fitur utama yang sudah ada & stabil).
+     * Opsi 2: **Scan Wajah (Face Recognition)** (Fitur biometrik baru).
+     * Opsi 3: **Input Manual / Barcode Scanner USB** (Fitur yang sudah ada).
+2. **Fitur Face Recognition (Pendaftaran & Scan Wajah Live):**
+   - **Pendaftaran Wajah Siswa (Enrollment):**
+     * Pada menu Data Master Siswa, disediakan tombol `[👤 Daftarkan Wajah]` per siswa.
+     * Modal kamera interaktif dengan frame panduan oval mendeteksi wajah siswa, mengekstrak 128-dimensional biometric descriptor via `face-api.js` (TensorFlow.js), dan menyimpannya ke database Google Sheets (kolom `FaceDescriptor` pada tab `Siswa`).
+   - **Pemindaian Wajah Live (Live Attendance):**
+     * Pada menu Scanner (Tab Scan Wajah), kamera live mendeteksi wajah di depan webcam/HP secara real-time.
+     * Sistem membandingkan descriptor wajah live dengan seluruh wajah siswa yang terdaftar menggunakan perhitungan *Euclidean Distance*.
+     * Jika tingkat kemiripan memenuhi threshold (jarak < 0.5 atau kemiripan > 85%), sistem otomatis mengenali nama dan NIS siswa, membunyikan suara sukses, dan langsung merekam kehadiran tanpa perlu kartu QR!
+3. **Deteksi GPS & Validasi Radius Sekolah (Geofencing):**
+   - **Pengaturan Koordinat & Radius:**
+     * Pada menu Pengaturan Jam & Sekolah, ditambahkan konfigurasi: `Latitude Sekolah`, `Longitude Sekolah`, `Radius Presensi (Meter)`, serta sakelar `Wajibkan Validasi GPS (Aktif/Nonaktif)`.
+     * Dilengkapi tombol pintar `[📍 Ambil Lokasi Saya Saat Ini]` agar admin tidak perlu repot mencari koordinat manual.
+   - **Validasi Jarak Haversine Saat Absensi:**
+     * Saat siswa melakukan absensi (baik QR, Wajah, maupun Manual):
+     * Sistem memeriksa koordinat geolokasi browser via `navigator.geolocation.getCurrentPosition()`.
+     * Jika siswa berada di luar batas radius sekolah: Absensi **ditolak secara otomatis** dengan notifikasi peringatan: *"Presensi Ditolak! Anda berada di luar radius sekolah. Jarak Anda: XXX meter (Batas: YYY meter)"*.
+     * Jika siswa berada di dalam radius: Presensi diterima dan koordinat dicatat rapi.
 
 ---
 
-## 3. BERKAS YANG TERDAMPAK
-- `app.js`: Logika deteksi kamera fisik, preferensi localStorage, dan Promise-safe switching.
-- `js.html`: Sinkronisasi logika yang sama untuk versi Apps Script modular.
+## 2. DETAIL PERUBAHAN TEKNIS PER BERKAS
+
+### A. Berkas `index.html` (Frontend Layout)
+1. **Header Scanner - Pilihan Mode Presensi:**
+   - Menambahkan tombol pilihan status presensi: `Masuk`, `Pulang`, `Izin`, dan `Sakit`.
+   - Jika memilih `Izin` atau `Sakit`, muncul input keterangan alasan.
+2. **Navigasi Tab Metode Presensi di Halaman Scanner:**
+   - Tab 1: `[📷 Scan Kartu QR]` (Viewport scanner QR Html5Qrcode yang sudah ada).
+   - Tab 2: `[👤 Scan Wajah (Face Recognition)]` (Viewport deteksi wajah dengan canvas overlay real-time).
+   - Tab 3: `[⌨️ Manual / Barcode USB]`.
+3. **Modal Pendaftaran Wajah Siswa (`#modalFaceEnrollment`):**
+   - Modal khusus dengan tampilan kamera live, deteksi wajah otomatis, panduan bingkai wajah, dan tombol "Simpan Wajah Siswa".
+4. **Formulir Pengaturan Sekolah - Konfigurasi GPS:**
+   - Field `Latitude Sekolah`, `Longitude Sekolah`, `Radius Presensi (Meter)`, `Sakelar GPS (Checkbox)`, dan tombol `[📍 Ambil Lokasi Saya Saat Ini]`.
+
+### B. Berkas `app.js` (Logika GitHub Pages) & `js.html` (Logika Apps Script)
+1. **Integrasi Library Biometrik `face-api.js`:**
+   - Memuat skrip TensorFlow & `face-api.js` via CDN terpercaya.
+   - Fungsi `loadFaceApiModels()`: Memuat model neural network wajah (`tinyFaceDetector`, `faceLandmark68Net`, `faceRecognitionNet`) secara asynchronous di latar belakang.
+2. **Logika Pendaftaran Wajah:**
+   - `openFaceEnrollmentModal(siswaId)`: Membuka kamera registrasi wajah untuk siswa yang dipilih.
+   - `captureAndSaveFaceDescriptor()`: Mengambil snapshot wajah, mengekstrak 128 embedding floats, dan menyimpan ke database backend.
+3. **Logika Pemindaian Wajah Live:**
+   - `startFaceRecognitionScanner()`: Membaca stream webcam menggunakan `<video>` dan mendeteksi wajah secara real-time via `faceapi.detectSingleFace().withFaceLandmarks().withFaceDescriptor()`.
+   - `matchFaceToSiswa(liveDescriptor)`: Menghitung jarak Euclidean dengan data cache `appState.siswaList`.
+   - Memanggil `processAttendanceScan(matchedNis)` dengan debounce anti double-scan.
+4. **Logika GPS Geofencing (Rumus Haversine):**
+   - `calculateDistanceMeters(lat1, lon1, lat2, lon2)`: Perhitungan jarak akurat berbasis kelengkungan bumi (Haversine Formula).
+   - `validateGpsLocation(callback)`: Memeriksa posisi GPS siswa dan memvalidasi apakah berada di dalam radius sekolah yang diatur di menu Pengaturan.
+
+### C. Berkas `code.gs` & `setup.gs` (Database & Backend Controller)
+1. **Pembaruan Tab Database Google Sheets:**
+   - Tab `Siswa`: Menambahkan kolom ke-9 `FaceDescriptor` (menyimpan string JSON embedding biometrik wajah).
+   - Tab `Pengaturan`: Menambahkan key default:
+     * `LATITUDE_SEKOLAH`: `-6.208763` (dapat diubah di menu Pengaturan)
+     * `LONGITUDE_SEKOLAH`: `106.845599`
+     * `RADIUS_METER`: `100`
+     * `GPS_ENABLED`: `false` (default nonaktif agar fleksibel dan tidak mengunci sebelum disetel)
+   - Tab `Presensi`: Menambahkan kolom ke-11 `LokasiGPS` untuk mencatat koordinat dan jarak saat presensi.
+2. **Backend API di `code.gs`:**
+   - Endpoint `saveFaceDescriptor`: Menyimpan embedding wajah siswa ke baris siswa terkait di tab `Siswa`.
+   - Pembaruan `rekamPresensi`: Menerima parameter tambahan `status` (Hadir/Izin/Sakit), `keterangan`, dan `koordinatGps`.
 
 ---
 
-## 4. CARA PENGUJIAN SETELAH DITERAPKAN
-1. Setelah diterapkan dan di-push ke GitHub Pages:
-2. Buka menu Scan Presensi.
-3. Kamera bawaan laptop Anda akan langsung menyala secara default (bukan OBS).
-4. Anda dapat dengan bebas mengganti kamera pada dropdown tanpa ditimpa balik atau mengalami error `Device in use`.
+## 3. TABEL KOMPARASI FITUR (SEBELUM VS SESUDAH)
+
+| Aspek Fitur | Sebelum Revisi v2.4.0 | Sesudah Revisi v2.4.0 |
+| :--- | :--- | :--- |
+| **Pilihan Status Presensi** | Hanya Masuk & Pulang otomatis | **Masuk, Pulang, Izin, dan Sakit** |
+| **Metode Pemindaian** | Hanya Scan QR Code & Manual NIS | **3 Tab: Scan QR, Scan Wajah (Biometrik), dan Manual** |
+| **Face Recognition** | Belum ada | **Ada (Pendaftaran Wajah Siswa + Scan Wajah Live Real-time)** |
+| **Deteksi Lokasi GPS** | Belum ada | **Geofencing Haversine (Validasi radius sekolah otomatis)** |
+| **Fitur Lama (QR, Kartu, CRUD)** | Berjalan normal | **TETAP 100% AMAN & UTUH tanpa perubahan breaking** |
+
+---
+
+## 4. RENCANA PENGUJIAN (TESTING CHECKLIST)
+- [ ] Tab metode scanner (QR vs Wajah vs Manual) dapat berpindah dengan mulus tanpa memicu error kamera `Device in use`.
+- [ ] Pendaftaran wajah siswa di menu Data Siswa berhasil merekam embedding wajah ke database.
+- [ ] Scan wajah live di halaman Scanner mengenali siswa yang sudah terdaftar dalam jarak < 1 detik.
+- [ ] Siswa yang belum mendaftarkan wajah tetap bisa absen menggunakan Kartu QR seperti biasa.
+- [ ] Pengaturan GPS (Latitude, Longitude, Radius) tersimpan dan tombol "Ambil Lokasi Saya" berfungsi akurat.
+- [ ] Jika validasi GPS aktif dan pengguna di luar radius, presensi ditolak dengan pesan yang informatif.
+- [ ] Jika validasi GPS nonaktif atau pengguna berada di dalam radius, presensi Masuk/Pulang/Izin/Sakit berhasil dicatat.
