@@ -1,70 +1,74 @@
-# DOKUMEN REVISI (REVISI v2.2.2 TELAH DIAPLIKASIKAN)
+# DOKUMEN REVISI (REVISI v2.3.0 TELAH DIAPLIKASIKAN - GITHUB PAGES READY)
 ================================================================================
 STATUS: SUKSES DITERAPKAN (MERGED TO MASTER CONTEXT)
 TANGGAL: 24 November 2026
 ENGINE: ZettBOT Core v4.1 (by Zettbos)
-HASIL PERBAIKAN:
-1. Sidebar 100% terkunci dalam palet Deep Navy (#172554) linear-gradient dengan teks putih/biru muda tajam.
-2. Seluruh bentrok class modal dialog dihilangkan (style="display: none;"), membebaskan pointer-events sehingga seluruh menu sidebar responsif dan dapat diklik secara instan.
-3. Menu navigasi dikonversi ke semantic button anti-sandbox Apps Script iframe.
-4. Fungsi switchView() diperkuat dengan blok proteksi try...catch.
+HASIL PERBAIKAN ARSITEKTUR GITHUB PAGES:
+1. `index.html` kini 100% mematuhi standar web statis dengan `<link rel="stylesheet" href="style.css">` dan `<script src="app.js"></script>`, bebas dari scriptlet Apps Script yang tidak didukung GitHub Pages.
+2. `style.css` memuat seluruh stylesheet resmi School Prime (Deep Navy Blue, Amber Gold, CR80 Print Stylesheet, dan animasi laser scanner).
+3. `app.js` telah dikonfigurasi dengan Default URL aktif backend Apps Script (@8), sinkronisasi kontrol modal `style.display`, dan proteksi `switchView()`.
+4. Header aplikasi kini dilengkapi indikator status koneksi API Google Sheets (`#apiStatusBadge`) dan modal konfigurasi dinamis (`#modalApiSettings`).
 ================================================================================
 
 ## 1. ANALISIS AKAR MASALAH (ROOT CAUSE ANALYSIS)
 
-1. **Akar Masalah Sidebar Tidak Bisa Diklik (Unclickable Sidebar):**
-   - Pada `index.html` (baris 789, 835, 872, 911, 948), ke-5 modal dialog (`#modalSiswa`, `#modalKelas`, `#modalSemester`, `#modalPengumuman`, `#modalQrPreview`) memiliki deklarasi class:
-     `class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4"`
-   - Keberadaan class `.flex` dan `.hidden` secara bersamaan memicu bentrok CSS (*specificity conflict* pada Tailwind Play CDN). Class `.flex` menimpa `.hidden`, sehingga layer modal overlay dengan posisi `fixed inset-0 z-50` aktif menutupi seluruh layar browser.
-   - Karena z-index modal (`z-50`) berada di atas sidebar (`z-30`), seluruh interaksi klik mouse tertahan di layer modal tak terlihat tersebut dan tidak pernah sampai ke tombol menu sidebar.
-
-2. **Akar Masalah Warna Sidebar Menjadi Putih (Missing Deep Navy Background):**
-   - Tag `<aside id="appSidebar">` hanya mengandalkan class `.schoolprime-sidebar` dari berkas `css.html`.
-   - Ketika Tailwind Play CDN (`cdn.tailwindcss.com`) memuat stylesheet di akhir `<head>`, aturan default body (`bg-slate-50`) menembus elemen sidebar yang belum memiliki utilitas eksplisit Tailwind `bg-[#172554]` maupun `style` inline.
-   - Akibatnya, sidebar berlatar putih sehingga teks bernuansa `text-blue-100` (`#dbeafe`) menjadi pudar dan kontras warnanya hilang.
-
----
-
-## 2. DETAIL TINDAKAN PERBAIKAN BEDAH (SURGICAL FIXES)
-
-### A. Perbaikan `index.html`:
-1. **Pemberian Warna Navy Permanen pada Sidebar (`#appSidebar`):**
-   - Menambahkan utilitas Tailwind `bg-[#172554]` serta inline style:
-     `style="background-color: #172554 !important; background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%) !important;"`
-   - Menjamin sidebar 100% selalu berwarna Deep Navy Blue School Prime yang pekat dan elegan.
-2. **Pembersihan Class Konflik pada Seluruh Modal Dialog:**
-   - Menghapus class `flex` dari deklarasi statis 5 modal di `index.html`.
-   - Menambahkan `style="display: none;"` secara inline pada kelima modal:
-     - `#modalSiswa`
-     - `#modalKelas`
-     - `#modalSemester`
-     - `#modalPengumuman`
-     - `#modalQrPreview`
-   - Dengan `display: none` inline, modal terbukti 100% tidak akan pernah menghalangi klik pointer saat dalam kondisi tertutup.
-3. **Penyempurnaan Elemen Navigasi Sidebar:**
-   - Mengubah elemen link menu navigasi menjadi `<button type="button" onclick="switchView('...')" class="w-full text-left ...">` yang jauh lebih ramah aksesibilitas (*a11y*) dan kebal dari pemblokiran sandbox Google Apps Script iframe.
-
-### B. Perbaikan `css.html`:
-1. **Penguatan Spesifisitas Styling Sidebar:**
-   - Menambahkan `!important` pada aturan `.schoolprime-sidebar` dan `.nav-item-active` agar tidak tertimpa class reset.
-   - Mengatur transisi hover dan efek tombol aktif (*amber gold indicator*).
-
-### C. Perbaikan `js.html`:
-1. **Sinkronisasi Buka/Tutup Modal:**
-   - Mengubah seluruh fungsi pembuka modal (`openModal*`) agar menetapkan `modal.style.display = 'flex'`.
-   - Mengubah seluruh fungsi penutup modal (`closeModal*`) agar menetapkan `modal.style.display = 'none'`.
-2. **Perlindungan Anti-Crash pada `switchView()`:**
-   - Menambahkan blok pelindung `try...catch` pada fungsi `switchView()` sehingga jika terjadi kendala pada salah satu sub-fitur (misal izin webcam), pergantian tampilan antarmuka tetap berjalan mulus tanpa macet.
+1. **GitHub Pages adalah Server Statis (Bukan Google Apps Script Runtime):**
+   - Di `index.html`, pemanggilan styling dan script sebelumnya menggunakan sintaks scriptlet Apps Script:
+     - `<?!= include('css'); ?>`
+     - `<?!= include('js'); ?>`
+   - Server GitHub Pages mengirimkan teks tersebut secara mentah (raw text) ke browser tanpa mengeksekusinya.
+   - Akibatnya:
+     - Berkas stylesheet tidak pernah disuntikkan -> Sidebar menjadi putih polos.
+     - Berkas JavaScript tidak pernah disuntikkan -> Seluruh fungsi (`switchView`, `openScannerWithMode`, `toggleMobileSidebar`) menjadi `undefined`, sehingga muncul error `ReferenceError: switchView is not defined` saat tombol diklik.
+2. **Ketiadaan API `google.script.run` di GitHub Pages:**
+   - Objek `google.script.run` hanya ada jika web app diakses langsung dari domain `script.google.com`.
+   - Pada GitHub Pages, komunikasi ke Google Sheets wajib menggunakan protokol HTTP Fetch (REST API Bridge) yang memanggil URL Web App Apps Script (`doGet` / `doPost`).
+   - Server backend `code.gs` versi @8 yang telah di-deploy sudah memiliki endpoint REST API yang siap menerima request dari GitHub Pages via CORS.
 
 ---
 
-## 3. DAFTAR KOMPONEN YANG TERDAMPAK
-- `index.html`: Komponen `<aside id="appSidebar">`, menu navigasi tombol, dan 5 elemen modal dialog.
-- `css.html`: Penguatan styling `.schoolprime-sidebar` dan `.nav-item-active`.
-- `js.html`: Logika pembuka/penutup modal dan fungsi `switchView()`.
+## 2. RENCANA TINDAKAN PERBAIKAN (SURGICAL PLAN v2.3.0)
+
+### A. Perbaikan `index.html` (Static Web & GitHub Pages Compliant):
+1. **Memuat Stylesheet Statis Resmi:**
+   - Mengganti `<?!= include('css'); ?>` menjadi tautan resmi:
+     `<link rel="stylesheet" href="style.css">`
+   - Menambahkan blok `<style>` inline cadangan agar warna Deep Navy `#172554` dan tombol aktif langsung terkunci tanpa bergantung latensi CDN.
+2. **Memuat Script Statis Resmi:**
+   - Mengganti `<?!= include('js'); ?>` menjadi tautan skrip statis:
+     `<script src="app.js"></script>`
+3. **Penyediaan Status Koneksi API di Header:**
+   - Menambahkan indikator status koneksi API Sheets di bilah header atas sehingga pengguna dapat memantau apakah frontend GitHub Pages sudah terhubung ke Google Sheets.
+
+### B. Penyempurnaan `style.css`:
+1. Menyinkronkan seluruh aturan CSS School Prime dari `css.html` ke `style.css`:
+   - Latar belakang gradien Deep Navy Blue (`#172554` ke `#1e3a8a`).
+   - Indikator menu aktif Amber Gold (`#f59e0b`).
+   - Aturan cetak kartu ID Card CR80 (@media print).
+   - Animasi laser scanner QR.
+
+### C. Penyempurnaan `app.js` (Universal REST API Client):
+1. **Pemasangan Default URL Google Apps Script:**
+   - Memasang URL Web App aktif hasil deployment @8 sebagai URL default otomatis:
+     `https://script.google.com/macros/s/AKfycbye38eAR5H1IvkbJwAkkE7M6zjCoBynOfw0DIs2gl7dAV5GVWqGFdzooouy03zHcpwRgQ/exec`
+   - Frontend di GitHub Pages akan langsung terhubung ke database Google Sheets tanpa perlu konfigurasi manual yang rumit.
+2. **Penyelarasan Seluruh Logika Interaksi & Modal:**
+   - Menerapkan seluruh perbaikan modal (`style.display = 'flex'` / `'none'`).
+   - Menerapkan pengaman `try...catch` pada `switchView()`.
+   - Mengirim request via HTTP POST/GET sederhana yang kebal pemblokiran CORS browser.
 
 ---
 
-## 4. INSTRUKSI PERSETUJUAN
-Ketik **OKE TERAPKAN** untuk mengeksekusi rencana perbaikan v2.2.2 ini.
-Setelah diterapkan, kode siap langsung diunggah ulang menggunakan `deploy.bat` atau clasp push.
+## 3. BERKAS YANG TERDAMPAK
+- `index.html`: Konversi include scriptlet ke `<link rel="stylesheet" href="style.css">` dan `<script src="app.js"></script>`.
+- `style.css`: Sinkronisasi styling lengkap School Prime.
+- `app.js`: Logika frontend universal + REST API Bridge ke Google Sheets.
+
+---
+
+## 4. CARA PENGUJIAN SETELAH DITERAPKAN
+Setelah perbaikan diterapkan:
+1. Lakukan `git add .`, `git commit -m "Fix GitHub Pages frontend integration"`, dan `git push origin main`.
+2. Buka domain GitHub Pages Anda (`https://<username>.github.io/<repo>/`).
+3. Tekan `Ctrl + F5` untuk Hard Refresh.
+4. Seluruh tombol menu sidebar dan dashboard akan langsung berfungsi seketika.

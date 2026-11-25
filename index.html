@@ -10,8 +10,22 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <!-- QRCode.js Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <!-- Custom Modular CSS -->
-  <?!= include('css'); ?>
+  <!-- Custom Modular CSS (Standard Web & GitHub Pages) -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Inline Fallback & Immediate Dark Navy Rendering */
+    .schoolprime-sidebar {
+      background-color: #172554 !important;
+      background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%) !important;
+      box-shadow: 4px 0 24px rgba(23, 37, 84, 0.12) !important;
+    }
+    .nav-item-active {
+      background: rgba(245, 158, 11, 0.22) !important;
+      color: #fbbf24 !important;
+      border-left: 4px solid #f59e0b !important;
+      font-weight: 700 !important;
+    }
+  </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col md:flex-row antialiased selection:bg-amber-100 selection:text-amber-900">
 
@@ -134,6 +148,11 @@
 
       <!-- Right Header Actions (Clock, Semester Badge, Quick Button) -->
       <div class="flex items-center space-x-3">
+        <!-- API Connection Status Badge -->
+        <div id="apiStatusBadge" onclick="openModalApiSettings()" class="hidden sm:flex items-center text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 cursor-pointer shadow-sm" title="Klik untuk cek konfigurasi Google Apps Script">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>API Sheets Terhubung
+        </div>
+
         <!-- Live Clock -->
         <div class="hidden sm:flex items-center bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold space-x-1.5 border border-slate-200">
           <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -960,10 +979,34 @@
     </div>
   </div>
 
+  <!-- Modal Konfigurasi URL Google Apps Script API -->
+  <div id="modalApiSettings" style="display: none;" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center p-4">
+    <div class="card-prime w-full max-w-md p-6 bg-white">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="text-base font-extrabold text-slate-900">Konfigurasi API Google Sheets</h3>
+        <button onclick="closeModalApiSettings()" class="text-slate-400 hover:text-slate-600">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500 mb-3">
+        Sistem frontend GitHub Pages ini terhubung ke Google Apps Script Web App untuk membaca & menyimpan data absensi langsung di Google Sheets Anda.
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">URL Web App Google Apps Script:</label>
+          <input type="text" id="settingApiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 font-mono">
+          <p class="text-[10px] text-slate-400 mt-1">Default terhubung ke deployment versi aktif sistem.</p>
+        </div>
+        <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+          <button type="button" onclick="closeModalApiSettings()" class="text-xs font-bold text-slate-600 px-4 py-2">Tutup</button>
+          <button type="button" onclick="saveGasApiUrlFromModal()" class="btn-press bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-4 py-2 rounded-lg">Simpan URL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
-  <!-- Modular JavaScript Scripts -->
-  <?!= include('js'); ?>
+  <!-- Application Logic (Universal: GitHub Pages & Static Web Compliant) -->
+  <script src="app.js"></script>
 </body>
 </html>

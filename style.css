@@ -24,28 +24,37 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f1f5f9;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
 /* Sidebar Styling */
 .schoolprime-sidebar {
-  background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%);
-  box-shadow: 4px 0 24px rgba(23, 37, 84, 0.12);
+  background-color: #172554 !important;
+  background: linear-gradient(180deg, #172554 0%, #1e3a8a 100%) !important;
+  box-shadow: 4px 0 24px rgba(23, 37, 84, 0.12) !important;
+}
+
+.nav-item {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
 }
 
 .nav-item-active {
-  background: rgba(245, 158, 11, 0.18);
+  background: rgba(245, 158, 11, 0.22) !important;
   color: #fbbf24 !important;
-  border-left: 4px solid #f59e0b;
-  font-weight: 600;
+  border-left: 4px solid #f59e0b !important;
+  font-weight: 700 !important;
 }
 
 /* Soft Glassmorphism & Cards */
@@ -66,6 +75,7 @@ body {
 .btn-press {
   transition: all 0.15s ease;
 }
+
 .btn-press:active {
   transform: scale(0.97);
 }
@@ -74,6 +84,7 @@ body {
 .scanner-crosshair {
   position: relative;
 }
+
 .scanner-crosshair::before,
 .scanner-crosshair::after {
   content: '';
@@ -83,12 +94,14 @@ body {
   border-color: #f59e0b;
   pointer-events: none;
 }
+
 .scanner-crosshair::before {
   top: 20px;
   left: 20px;
   border-top: 4px solid;
   border-left: 4px solid;
 }
+
 .scanner-crosshair::after {
   bottom: 20px;
   right: 20px;
@@ -105,10 +118,20 @@ body {
 }
 
 @keyframes scanAnim {
-  0% { transform: translateY(0); opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateY(240px); opacity: 0; }
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(240px);
+    opacity: 0;
+  }
 }
 
 /* ==========================================================================

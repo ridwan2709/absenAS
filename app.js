@@ -8,6 +8,7 @@
  */
 
 var GAS_API_URL_KEY = 'SCHOOLPRIME_GAS_API_URL';
+var DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbye38eAR5H1IvkbJwAkkE7M6zjCoBynOfw0DIs2gl7dAV5GVWqGFdzooouy03zHcpwRgQ/exec';
 
 // Global State Store
 var appState = {
@@ -34,7 +35,7 @@ var appState = {
 // REST API BRIDGE (FETCH CLIENT KE GOOGLE APPS SCRIPT)
 // ==============================================================================
 function getGasApiUrl() {
-  return localStorage.getItem(GAS_API_URL_KEY) || '';
+  return localStorage.getItem(GAS_API_URL_KEY) || DEFAULT_GAS_URL;
 }
 
 function setGasApiUrl(url) {
@@ -127,12 +128,26 @@ function openModalApiSettings() {
   var modal = document.getElementById('modalApiSettings');
   var input = document.getElementById('settingApiUrlInput');
   if (input) input.value = getGasApiUrl();
-  if (modal) modal.classList.remove('hidden');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeModalApiSettings() {
   var modal = document.getElementById('modalApiSettings');
-  if (modal) modal.classList.add('hidden');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveGasApiUrlFromModal() {
+  var input = document.getElementById('settingApiUrlInput');
+  if (!input) return;
+  var val = input.value.trim();
+  if (!val) {
+    showToast('Silakan masukkan URL Web App Google Apps Script!', 'warning');
+    return;
+  }
+  setGasApiUrl(val);
+  closeModalApiSettings();
+  showToast('URL API Google Apps Script berhasil disimpan!', 'success');
+  loadInitialData();
 }
 
 function saveApiUrlFromModal(e) {
@@ -191,69 +206,75 @@ function toggleMobileSidebar() {
 // NAVIGATION & VIEW SWITCHING (0-SECOND IN-MEMORY SWITCH)
 // ==============================================================================
 function switchView(viewName) {
-  appState.currentView = viewName;
+  try {
+    appState.currentView = viewName;
 
-  var views = document.querySelectorAll('main section');
-  views.forEach(function(v) {
-    v.classList.add('hidden');
-  });
+    var views = document.querySelectorAll('main section');
+    views.forEach(function(v) {
+      v.classList.add('hidden');
+    });
 
-  var targetView = document.getElementById('view-' + viewName);
-  if (targetView) {
-    targetView.classList.remove('hidden');
-  }
+    var targetView = document.getElementById('view-' + viewName);
+    if (targetView) {
+      targetView.classList.remove('hidden');
+    }
 
-  var navLinks = document.querySelectorAll('.nav-item');
-  navLinks.forEach(function(link) {
-    link.classList.remove('nav-item-active');
-  });
-  var activeLink = document.getElementById('nav-' + viewName);
-  if (activeLink) {
-    activeLink.classList.add('nav-item-active');
-  }
+    var navLinks = document.querySelectorAll('.nav-item');
+    navLinks.forEach(function(link) {
+      link.classList.remove('nav-item-active');
+    });
+    var activeLink = document.getElementById('nav-' + viewName);
+    if (activeLink) {
+      activeLink.classList.add('nav-item-active');
+    }
 
-  var titleMap = {
-    dashboard: ['Dashboard Overview', 'Monitoring absensi dan statistik sekolah'],
-    scanner: ['Scan Presensi QR', 'Pindai kartu siswa dengan Kamera Live atau Barcode Scanner USB'],
-    siswa: ['Data Master Siswa', 'Kelola informasi siswa, kelas, dan cetak QR Code'],
-    kelas: ['Data Rombel / Kelas', 'Daftar kelas dan guru wali kelas'],
-    semester: ['Semester & Tahun Ajaran', 'Atur periode kalender akademik yang aktif'],
-    naikkelas: ['Kenaikan Kelas (Promosi)', 'Proses promosi massal siswa atau tetapkan status kelulusan'],
-    cetakkartu: ['Cetak Kartu Siswa', 'ID Card standar 8.5 x 5.4 cm siap cetak satuan / lembar A4'],
-    laporan: ['Rekap & Laporan Presensi', 'Filter dan ekspor rekaman kehadiran siswa'],
-    pengumuman: ['Manajemen Notice Board', 'Kelola agenda dan pengumuman sekolah'],
-    pengaturan: ['Pengaturan Jam & Sekolah', 'Konfigurasi batas telat dan profil sekolah']
-  };
+    var titleMap = {
+      dashboard: ['Dashboard Overview', 'Monitoring absensi dan statistik sekolah'],
+      scanner: ['Scan Presensi QR', 'Pindai kartu siswa dengan Kamera Live atau Barcode Scanner USB'],
+      siswa: ['Data Master Siswa', 'Kelola informasi siswa, kelas, dan cetak QR Code'],
+      kelas: ['Data Rombel / Kelas', 'Daftar kelas dan guru wali kelas'],
+      semester: ['Semester & Tahun Ajaran', 'Atur periode kalender akademik yang aktif'],
+      naikkelas: ['Kenaikan Kelas (Promosi)', 'Proses promosi massal siswa atau tetapkan status kelulusan'],
+      cetakkartu: ['Cetak Kartu Siswa', 'ID Card standar 8.5 x 5.4 cm siap cetak satuan / lembar A4'],
+      laporan: ['Rekap & Laporan Presensi', 'Filter dan ekspor rekaman kehadiran siswa'],
+      pengumuman: ['Manajemen Notice Board', 'Kelola agenda dan pengumuman sekolah'],
+      pengaturan: ['Pengaturan Jam & Sekolah', 'Konfigurasi batas telat dan profil sekolah']
+    };
 
-  if (titleMap[viewName]) {
-    document.getElementById('pageTitle').innerText = titleMap[viewName][0];
-    document.getElementById('pageSubtitle').innerText = titleMap[viewName][1];
-  }
+    if (titleMap[viewName]) {
+      var pt = document.getElementById('pageTitle');
+      var ps = document.getElementById('pageSubtitle');
+      if (pt) pt.innerText = titleMap[viewName][0];
+      if (ps) ps.innerText = titleMap[viewName][1];
+    }
 
-  if (viewName === 'scanner') {
-    startCameraScanner();
-  } else {
-    stopCameraScanner();
-  }
+    if (viewName === 'scanner') {
+      startCameraScanner();
+    } else {
+      stopCameraScanner();
+    }
 
-  if (viewName === 'siswa') {
-    if (appState.siswaList.length === 0) loadSiswaData();
-  } else if (viewName === 'kelas') {
-    if (appState.kelasList.length === 0) loadKelasData();
-  } else if (viewName === 'semester') {
-    if (appState.semesterList.length === 0) loadSemesterData();
-  } else if (viewName === 'naikkelas') {
-    populateNaikKelasDropdowns();
-  } else if (viewName === 'cetakkartu') {
-    populateCetakKelasFilter();
-    renderKartuBatch();
-  } else if (viewName === 'laporan') {
-    populateLaporanKelasFilter();
-    loadLaporanPresensi();
-  } else if (viewName === 'pengumuman') {
-    loadPengumumanData();
-  } else if (viewName === 'pengaturan') {
-    loadPengaturanForm();
+    if (viewName === 'siswa') {
+      if (appState.siswaList.length === 0) loadSiswaData();
+    } else if (viewName === 'kelas') {
+      if (appState.kelasList.length === 0) loadKelasData();
+    } else if (viewName === 'semester') {
+      if (appState.semesterList.length === 0) loadSemesterData();
+    } else if (viewName === 'naikkelas') {
+      populateNaikKelasDropdowns();
+    } else if (viewName === 'cetakkartu') {
+      populateCetakKelasFilter();
+      renderKartuBatch();
+    } else if (viewName === 'laporan') {
+      populateLaporanKelasFilter();
+      loadLaporanPresensi();
+    } else if (viewName === 'pengumuman') {
+      loadPengumumanData();
+    } else if (viewName === 'pengaturan') {
+      loadPengaturanForm();
+    }
+  } catch (err) {
+    console.error('Error saat switchView:', err);
   }
 }
 
@@ -809,11 +830,11 @@ function openModalSiswa(data) {
     formStatus.value = 'Aktif';
   }
 
-  modal.classList.remove('hidden');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeModalSiswa() {
-  document.getElementById('modalSiswa').classList.add('hidden');
+  var m = document.getElementById('modalSiswa'); if (m) m.style.display = 'none';
 }
 
 function editSiswa(id) {
@@ -888,11 +909,11 @@ function previewQrSiswa(nis, nama, kelas) {
     correctLevel : QRCode.CorrectLevel.H
   });
 
-  modal.classList.remove('hidden');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeModalQrPreview() {
-  document.getElementById('modalQrPreview').classList.add('hidden');
+  var m = document.getElementById('modalQrPreview'); if (m) m.style.display = 'none';
 }
 
 // ==============================================================================
@@ -953,11 +974,11 @@ function openModalKelas() {
   document.getElementById('kelasFormNama').value = '';
   document.getElementById('kelasFormJurusan').value = '';
   document.getElementById('kelasFormWali').value = '';
-  document.getElementById('modalKelas').classList.remove('hidden');
+  var m = document.getElementById('modalKelas'); if (m) m.style.display = 'flex';
 }
 
 function closeModalKelas() {
-  document.getElementById('modalKelas').classList.add('hidden');
+  var m = document.getElementById('modalKelas'); if (m) m.style.display = 'none';
 }
 
 function handleSaveKelas(e) {
@@ -1048,11 +1069,11 @@ function openModalSemester() {
   document.getElementById('semesterFormId').value = '';
   document.getElementById('semesterFormTahun').value = '';
   document.getElementById('semesterFormKet').value = '';
-  document.getElementById('modalSemester').classList.remove('hidden');
+  var m = document.getElementById('modalSemester'); if (m) m.style.display = 'flex';
 }
 
 function closeModalSemester() {
-  document.getElementById('modalSemester').classList.add('hidden');
+  var m = document.getElementById('modalSemester'); if (m) m.style.display = 'none';
 }
 
 function handleSaveSemester(e) {
@@ -1420,11 +1441,11 @@ function openModalPengumuman() {
   document.getElementById('pengumumanFormJudul').value = '';
   document.getElementById('pengumumanFormTanggal').value = new Date().toISOString().slice(0, 10);
   document.getElementById('pengumumanFormKategori').value = 'Trip';
-  document.getElementById('modalPengumuman').classList.remove('hidden');
+  var m = document.getElementById('modalPengumuman'); if (m) m.style.display = 'flex';
 }
 
 function closeModalPengumuman() {
-  document.getElementById('modalPengumuman').classList.add('hidden');
+  var m = document.getElementById('modalPengumuman'); if (m) m.style.display = 'none';
 }
 
 function handleSavePengumuman(e) {
