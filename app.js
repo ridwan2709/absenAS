@@ -18,6 +18,7 @@ var appState = {
   lastScannedNis: '',
   html5QrCode: null,
   isCameraRunning: false,
+  isStoppingScanner: false,
   availableCameras: [],
   selectedCameraId: null,
   usbBuffer: '',
@@ -387,8 +388,77 @@ function setScannerMode(mode) {
   }
 }
 
+function isVirtualCamera(label) {
+  var l = (label || '').toLowerCase();
+  return l.indexOf('obs') !== -1 ||
+         l.indexOf('virtual') !== -1 ||
+         l.indexOf('iriun') !== -1 ||
+         l.indexOf('droidcam') !== -1 ||
+         l.indexOf('vcam') !== -1 ||
+         l.indexOf('unity') !== -1 ||
+         l.indexOf('manycam') !== -1 ||
+         l.indexOf('splitcam') !== -1;
+}
+
+function isScannerActive() {
+  if (!appState.html5QrCode) return false;
+  try {
+    if (typeof appState.html5QrCode.getState === 'function') {
+      var s = appState.html5QrCode.getState();
+      return s === 2 || s === 3; // 2=SCANNING, 3=PAUSED
+    }
+  } catch (e) {}
+  return !!appState.isCameraRunning;
+}
+
+function renderScannerError(errorTitle, errorMsg, isLockError) {
+  var qrReaderEl = document.getElementById('qr-reader');
+  if (!qrReaderEl) return;
+
+  var tip = isLockError 
+    ? 'Kamera sedang digunakan atau terkunci oleh software lain (seperti OBS Studio, Zoom, Teams, atau tab browser lain). Tutup software tersebut atau pilih kamera lain pada dropdown di atas.'
+    : 'Pastikan izin akses kamera (Camera Permission) sudah diizinkan (Allow) pada browser Anda.';
+
+  qrReaderEl.innerHTML = 
+    '<div id="scannerErrorBanner" class="flex flex-col items-center justify-center p-6 text-center h-full bg-slate-900 text-white rounded-xl">' +
+      '<div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mb-3">' +
+        '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>' +
+      '</div>' +
+      '<h4 class="text-sm font-bold text-rose-300 mb-1">' + (errorTitle || 'Kendala Akses Kamera') + '</h4>' +
+      '<p class="text-xs text-slate-300 max-w-xs mb-2 font-mono bg-slate-800/80 px-2 py-1 rounded border border-slate-700">' + (errorMsg || 'Device in use / Not readable') + '</p>' +
+      '<p class="text-[11px] text-slate-400 max-w-xs mb-4 leading-relaxed">' + tip + '</p>' +
+      '<div class="flex gap-2">' +
+        '<button onclick="retryCameraScanner()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg transition shadow-md flex items-center gap-1.5">' +
+          '<span>🔄</span> Coba Hubungkan Ulang' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function retryCameraScanner() {
+  var qrReaderEl = document.getElementById('qr-reader');
+  if (qrReaderEl) {
+    qrReaderEl.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400 text-xs py-10"><div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mb-2"></div>Menghubungkan ulang kamera...</div>';
+  }
+  stopCameraScanner().then(function() {
+    try {
+      if (appState.html5QrCode) {
+        appState.html5QrCode.clear();
+      }
+    } catch (e) {}
+    appState.html5QrCode = new Html5Qrcode('qr-reader');
+    setTimeout(function() {
+      startCameraScanner();
+    }, 300);
+  });
+}
+
 function startCameraScanner() {
   if (appState.isCameraRunning) return;
+  if (appState.isStoppingScanner) {
+    setTimeout(startCameraScanner, 200);
+    return;
+  }
 
   var qrReaderEl = document.getElementById('qr-reader');
   if (!qrReaderEl) return;
@@ -403,24 +473,58 @@ function startCameraScanner() {
   }
 
   Html5Qrcode.getCameras().then(function(cameras) {
+    if (!cameras || cameras.length === 0) {
+      renderScannerError('Kamera Tidak Ditemukan', 'Tidak ada perangkat kamera yang terdeteksi di laptop/komputer ini.', false);
+      return;
+    }
+
     appState.availableCameras = cameras;
     var camSelect = document.getElementById('cameraSelect');
-    if (camSelect && cameras.length > 0) {
+    if (camSelect) {
       camSelect.innerHTML = '';
       cameras.forEach(function(c, idx) {
         var opt = document.createElement('option');
         opt.value = c.id;
-        opt.text = c.label || 'Kamera ' + (idx + 1);
+        var isVirt = isVirtualCamera(c.label);
+        var labelClean = c.label || ('Kamera ' + (idx + 1));
+        opt.text = isVirt ? labelClean + ' (Virtual)' : labelClean + ' (Bawaan / Fisik)';
         camSelect.appendChild(opt);
       });
-      appState.selectedCameraId = cameras[cameras.length - 1].id;
-      camSelect.value = appState.selectedCameraId;
     }
 
-    var selectedCam = appState.selectedCameraId || { facingMode: "environment" };
+    // Pemilihan kamera cerdas:
+    // 1. Ambil preferensi pengguna yang tersimpan di localStorage
+    var savedCamId = null;
+    try {
+      savedCamId = localStorage.getItem('SCHOOLPRIME_SELECTED_CAMERA');
+    } catch (e) {}
+
+    var targetCam = null;
+    if (savedCamId && cameras.some(function(c) { return c.id === savedCamId; })) {
+      targetCam = cameras.find(function(c) { return c.id === savedCamId; });
+    } else if (appState.selectedCameraId && cameras.some(function(c) { return c.id === appState.selectedCameraId; })) {
+      targetCam = cameras.find(function(c) { return c.id === appState.selectedCameraId; });
+    } else {
+      // Prioritaskan kamera fisik bawaan laptop (abaikan OBS, Virtual, DroidCam, dll.)
+      targetCam = cameras.find(function(c) { return !isVirtualCamera(c.label); });
+    }
+
+    // Fallback jika semua kamera bertanda virtual
+    if (!targetCam) {
+      targetCam = cameras[0];
+    }
+
+    appState.selectedCameraId = targetCam.id;
+    try {
+      localStorage.setItem('SCHOOLPRIME_SELECTED_CAMERA', targetCam.id);
+    } catch (e) {}
+
+    if (camSelect) {
+      camSelect.value = targetCam.id;
+    }
 
     appState.html5QrCode.start(
-      selectedCam,
+      targetCam.id,
       {
         fps: 12,
         qrbox: { width: 250, height: 250 }
@@ -433,32 +537,59 @@ function startCameraScanner() {
       }
     ).then(function() {
       appState.isCameraRunning = true;
+      var errBanner = document.getElementById('scannerErrorBanner');
+      if (errBanner) errBanner.remove();
     }).catch(function(err) {
       console.warn('Gagal menyalakan live kamera:', err);
+      appState.isCameraRunning = false;
+      var errStr = (err && (err.name || err.message || err.toString())) || '';
+      var isLock = errStr.indexOf('NotReadableError') !== -1 || errStr.indexOf('in use') !== -1 || errStr.indexOf('Device in use') !== -1;
+      renderScannerError('Gagal Mengakses Kamera', errStr || 'Kamera terkunci oleh aplikasi lain.', isLock);
     });
   }).catch(function(err) {
     console.warn('Kamera tidak terdeteksi:', err);
+    var errStr = (err && (err.name || err.message || err.toString())) || '';
+    var isLock = errStr.indexOf('NotReadableError') !== -1 || errStr.indexOf('in use') !== -1 || errStr.indexOf('Device in use') !== -1;
+    renderScannerError('Kamera Tidak Siap', errStr || 'Tidak dapat membaca perangkat kamera.', isLock);
   });
 }
 
 function stopCameraScanner() {
-  if (appState.html5QrCode && appState.isCameraRunning) {
-    appState.html5QrCode.stop().then(function() {
+  if (appState.html5QrCode && isScannerActive()) {
+    appState.isStoppingScanner = true;
+    return appState.html5QrCode.stop().then(function() {
       appState.isCameraRunning = false;
+      appState.isStoppingScanner = false;
     }).catch(function(err) {
       console.warn('Error saat mematikan scanner:', err);
+      appState.isCameraRunning = false;
+      appState.isStoppingScanner = false;
     });
   }
+  appState.isCameraRunning = false;
+  appState.isStoppingScanner = false;
+  return Promise.resolve();
 }
 
 function switchCamera(cameraId) {
   if (!cameraId) return;
   appState.selectedCameraId = cameraId;
-  if (appState.isCameraRunning) {
-    stopCameraScanner();
-    setTimeout(startCameraScanner, 400);
-  }
+  try {
+    localStorage.setItem('SCHOOLPRIME_SELECTED_CAMERA', cameraId);
+  } catch (e) {}
+
+  stopCameraScanner().then(function() {
+    setTimeout(function() {
+      startCameraScanner();
+    }, 250);
+  });
 }
+
+// Global window exposure for event handlers
+window.startCameraScanner = startCameraScanner;
+window.stopCameraScanner = stopCameraScanner;
+window.switchCamera = switchCamera;
+window.retryCameraScanner = retryCameraScanner;
 
 function onQrCodeScanned(rawText) {
   var now = Date.now();
