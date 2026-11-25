@@ -173,14 +173,33 @@ function saveGasApiUrlFromModal() {
     showToast('Jangan gunakan URL /dev! Gunakan URL Web App Deployment yang berakhiran /exec.', 'error');
     return;
   }
-  if (val.indexOf('https://script.google.com/macros/s/') !== 0 || val.indexOf('/exec') === -1) {
-    showToast('Format URL harus berupa Web App Google Apps Script (https://script.google.com/macros/s/.../exec).', 'warning');
+  if (val.indexOf('https://script.google.com/') !== 0 || val.indexOf('/exec') === -1) {
+    showToast('Format URL harus berupa Web App Google Apps Script (.../exec).', 'warning');
     return;
   }
   setGasApiUrl(val);
   closeModalApiSettings();
   showToast('URL API Google Apps Script berhasil disimpan!', 'success');
   loadInitialData();
+}
+
+function testGasApiUrlInNewTab() {
+  var input = document.getElementById('settingApiUrlInput');
+  var val = (input && input.value.trim()) || getGasApiUrl();
+  if (!val) {
+    showToast('Masukkan URL Web App terlebih dahulu!', 'warning');
+    return;
+  }
+  var testUrl = val + (val.indexOf('?') === -1 ? '?' : '&') + 'action=getPengaturan&args=%5B%5D';
+  window.open(testUrl, '_blank');
+}
+
+function resetGasApiUrlToDefault() {
+  localStorage.removeItem(GAS_API_URL_KEY);
+  var input = document.getElementById('settingApiUrlInput');
+  if (input) input.value = DEFAULT_GAS_URL;
+  updateApiStatusUI();
+  showToast('URL API dikembalikan ke default sistem.', 'info');
 }
 
 function saveApiUrlFromModal(e) {
