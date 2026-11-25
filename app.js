@@ -108,6 +108,9 @@ function callBackendApi(action, args, onSuccess, onFailure) {
   // Kirim POST dengan text/plain (CORS Simple Request tanpa OPTIONS preflight)
   fetch(gasUrl, {
     method: 'POST',
+    mode: 'cors',
+    redirect: 'follow',
+    credentials: 'omit',
     body: JSON.stringify(payload),
     headers: {
       'Content-Type': 'text/plain;charset=utf-8'
@@ -124,7 +127,12 @@ function callBackendApi(action, args, onSuccess, onFailure) {
     var getUrl = gasUrl + (gasUrl.indexOf('?') === -1 ? '?' : '&') +
                  'action=' + encodeURIComponent(action) +
                  '&args=' + encodeURIComponent(JSON.stringify(args || []));
-    fetch(getUrl)
+    fetch(getUrl, {
+      method: 'GET',
+      mode: 'cors',
+      redirect: 'follow',
+      credentials: 'omit'
+    })
       .then(function(res) { return res.json(); })
       .then(function(data) {
         if (onSuccess) onSuccess(data);
@@ -159,6 +167,14 @@ function saveGasApiUrlFromModal() {
   var val = input.value.trim();
   if (!val) {
     showToast('Silakan masukkan URL Web App Google Apps Script!', 'warning');
+    return;
+  }
+  if (val.indexOf('/dev') !== -1) {
+    showToast('Jangan gunakan URL /dev! Gunakan URL Web App Deployment yang berakhiran /exec.', 'error');
+    return;
+  }
+  if (val.indexOf('https://script.google.com/macros/s/') !== 0 || val.indexOf('/exec') === -1) {
+    showToast('Format URL harus berupa Web App Google Apps Script (https://script.google.com/macros/s/.../exec).', 'warning');
     return;
   }
   setGasApiUrl(val);
